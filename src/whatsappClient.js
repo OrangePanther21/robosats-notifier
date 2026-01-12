@@ -2,14 +2,32 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const QRCode = require('qrcode');
 const EventEmitter = require('events');
+const fs = require('fs');
+const path = require('path');
 const logger = require('./logger');
 const config = require('./config');
 
 class WhatsAppClient extends EventEmitter {
   constructor() {
     super();
+    // Determine auth path: use env var, or detect Docker vs local dev
+    let authPath = process.env.WHATSAPP_AUTH_PATH;
+    if (!authPath) {
+      // Check if we're in Docker by checking for /data directory (mounted volume)
+      // In Docker, auth is mounted to /app/.wwebjs_auth
+      // In local dev, use ./.wwebjs_auth
+      if (fs.existsSync('/data')) {
+        authPath = '/app/.wwebjs_auth';
+      } else {
+        // Local development - use relative path
+        authPath = path.join(process.cwd(), '.wwebjs_auth');
+      }
+    }
+    
+    logger.info(`Using WhatsApp auth path: ${authPath}`);
+    
     this.client = new Client({
-      authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+      authStrategy: new LocalAuth({ dataPath: authPath }),
       puppeteer: {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']

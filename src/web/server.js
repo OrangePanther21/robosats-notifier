@@ -37,18 +37,21 @@ class WebServer {
       }
     });
 
-    // Save configuration and restart bot
+    // Save configuration and reload
     this.app.post('/api/settings', (req, res) => {
       try {
         const newSettings = req.body;
         config.saveConfig(newSettings);
         
+        // Reload configuration immediately
+        config.reloadConfig();
+        
         res.json({ 
           success: true, 
-          message: 'Settings saved. Please restart the application for changes to take effect.' 
+          message: 'Settings saved and applied successfully!' 
         });
         
-        logger.info('Settings updated via web UI');
+        logger.info('Settings updated and reloaded via web UI');
       } catch (error) {
         logger.error('Error saving settings:', error);
         res.status(500).json({ error: 'Failed to save settings' });
@@ -92,9 +95,61 @@ class WebServer {
       res.json(Object.keys(config.CURRENCY_MAP));
     });
 
-    // Get available coordinators
+    // Get available coordinators with display names
     this.app.get('/api/coordinators', (req, res) => {
-      res.json(config.AVAILABLE_COORDINATORS);
+      const coordinatorsWithNames = config.AVAILABLE_COORDINATORS.map(id => ({
+        id: id,
+        name: config.COORDINATOR_MAP[id] || id
+      }));
+      res.json(coordinatorsWithNames);
+    });
+
+    // Send test message to WhatsApp group
+    this.app.post('/api/test-message', async (req, res) => {
+      try {
+        if (!this.whatsappClient.isReady) {
+          return res.status(503).json({ 
+            error: 'WhatsApp is not connected yet. Please wait for authentication.' 
+          });
+        }
+
+        // Use groupName from request body if provided, otherwise fall back to config
+        const groupName = req.body.groupName || config.WHATSAPP_GROUP_NAME;
+        
+        if (!groupName) {
+          return res.status(400).json({
+            error: 'Please enter a group name'
+          });
+        }
+
+        const testMessage = '🤖 *Test Message from RoboSats WhatsApp Notifier*\n\nIf you can see this message, the bot is working correctly!';
+        
+        // Send to the specified group
+        const chats = await this.whatsappClient.client.getChats();
+        const group = chats.find(chat => 
+          chat.isGroup && chat.name === groupName
+        );
+
+        if (!group) {
+          return res.status(404).json({ 
+            error: `Group "${groupName}" not found. Please check the group name is correct.` 
+          });
+        }
+
+        await group.sendMessage(testMessage, { linkPreview: false });
+        
+        res.json({ 
+          success: true, 
+          message: `Test message sent successfully to "${groupName}"!` 
+        });
+        
+        logger.info(`Test message sent to group "${groupName}" via web UI`);
+      } catch (error) {
+        logger.error('Error sending test message:', error);
+        res.status(500).json({ 
+          error: 'Failed to send test message: ' + error.message 
+        });
+      }
     });
   }
 

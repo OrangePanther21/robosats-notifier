@@ -19,7 +19,18 @@
             <div class="status-grid">
                 <div class="status-item">
                     <span class="status-label">Bot Status:</span>
-                    <span id="bot-status" class="status-value">Checking...</span>
+                    <div class="status-with-control">
+                        <span id="bot-status" class="status-value">Checking...</span>
+                        <button type="button" id="bot-toggle-btn" class="icon-btn" title="Pause/Resume Bot">
+                            <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="6" y="4" width="4" height="16"></rect>
+                                <rect x="14" y="4" width="4" height="16"></rect>
+                            </svg>
+                            <svg id="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="status-item">
                     <span class="status-label">WhatsApp:</span>
@@ -40,10 +51,16 @@
         <!-- Settings Form -->
         <section class="settings-section">
             <h2>Settings</h2>
+            <div id="connection-warning" class="connection-warning" style="display: none;">
+                ⚠️ Settings are disabled until WhatsApp is connected. Please scan the QR code above to continue.
+            </div>
             <form id="settings-form">
                 <div class="form-group">
                     <label for="whatsapp-group">WhatsApp Group Name</label>
-                    <input type="text" id="whatsapp-group" name="WHATSAPP_GROUP_NAME" required>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="whatsapp-group" name="WHATSAPP_GROUP_NAME" required style="flex: 1;">
+                        <button type="button" id="test-message-btn" class="btn btn-test">Test</button>
+                    </div>
                     <small>The exact name of your WhatsApp group</small>
                 </div>
 
@@ -55,8 +72,18 @@
 
                 <div class="form-group">
                     <label for="target-currencies">Target Currencies</label>
-                    <input type="text" id="target-currencies" name="TARGET_CURRENCIES" placeholder="USD,EUR,GBP" required>
-                    <small>Comma-separated list of currency codes</small>
+                    <div class="multiselect" id="currencies-multiselect">
+                        <div class="multiselect-trigger">
+                            <span class="multiselect-text">Select currencies...</span>
+                            <span class="multiselect-arrow">▼</span>
+                        </div>
+                        <div class="multiselect-dropdown">
+                            <input type="text" class="multiselect-search" placeholder="Search...">
+                            <div class="multiselect-options"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="target-currencies" name="TARGET_CURRENCIES" required>
+                    <small>Select one or more currency codes</small>
                 </div>
 
                 <div class="form-group">
@@ -68,12 +95,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="timezone">Timezone</label>
-                    <input type="text" id="timezone" name="TIMEZONE" value="UTC">
-                    <small>e.g., America/New_York, Europe/London, UTC</small>
-                </div>
-
-                <div class="form-group">
                     <label for="robosats-api">RoboSats API URL</label>
                     <input type="url" id="robosats-api" name="ROBOSATS_API_URL" placeholder="http://robosats:12596">
                     <small>Internal Docker URL for RoboSats API</small>
@@ -81,8 +102,18 @@
 
                 <div class="form-group">
                     <label for="robosats-coordinators">RoboSats Coordinators</label>
-                    <input type="text" id="robosats-coordinators" name="ROBOSATS_COORDINATORS" placeholder="bazaar,moon,lake">
-                    <small>Comma-separated list of coordinator IDs</small>
+                    <div class="multiselect" id="coordinators-multiselect">
+                        <div class="multiselect-trigger">
+                            <span class="multiselect-text">Select coordinators...</span>
+                            <span class="multiselect-arrow">▼</span>
+                        </div>
+                        <div class="multiselect-dropdown">
+                            <input type="text" class="multiselect-search" placeholder="Search...">
+                            <div class="multiselect-options"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="robosats-coordinators" name="ROBOSATS_COORDINATORS">
+                    <small>Select one or more coordinators</small>
                 </div>
 
                 <div class="form-group">
@@ -91,18 +122,8 @@
                     <small>Tor onion address for RoboSats</small>
                 </div>
 
-                <div class="form-group">
-                    <label for="log-level">Log Level</label>
-                    <select id="log-level" name="LOG_LEVEL">
-                        <option value="error">Error</option>
-                        <option value="warn">Warning</option>
-                        <option value="info">Info</option>
-                        <option value="debug">Debug</option>
-                    </select>
-                </div>
-
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                    <button type="submit" class="btn btn-primary" disabled>Save Settings</button>
                     <button type="button" id="refresh-btn" class="btn btn-secondary">Refresh Status</button>
                 </div>
             </form>
@@ -111,60 +132,462 @@
         </section>
 
         <footer>
-            <p>After saving settings, restart the container for changes to take effect.</p>
+            <p>Settings are applied immediately - no restart required!</p>
         </footer>
     </div>
 
     <script>
+        // Multi-select component class
+        class MultiSelect {
+            constructor(containerId, options, selectedValues = []) {
+                this.container = document.getElementById(containerId);
+                // Support both simple arrays and {id, name} objects
+                this.options = options;
+                this.isObjectOptions = options.length > 0 && typeof options[0] === 'object';
+                this.selectedValues = new Set(selectedValues);
+                this.filteredOptions = [...options];
+                
+                this.trigger = this.container.querySelector('.multiselect-trigger');
+                this.dropdown = this.container.querySelector('.multiselect-dropdown');
+                this.searchInput = this.container.querySelector('.multiselect-search');
+                this.optionsContainer = this.container.querySelector('.multiselect-options');
+                this.textSpan = this.container.querySelector('.multiselect-text');
+                
+                this.init();
+            }
+            
+            getOptionId(option) {
+                return this.isObjectOptions ? option.id : option;
+            }
+            
+            getOptionName(option) {
+                return this.isObjectOptions ? option.name : option;
+            }
+            
+            init() {
+                // Ensure dropdown is closed initially
+                this.dropdown.style.display = 'none';
+                
+                this.renderOptions();
+                this.updateText();
+                
+                // Toggle dropdown
+                this.trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleDropdown();
+                });
+                
+                // Search functionality
+                this.searchInput.addEventListener('input', (e) => {
+                    this.filterOptions(e.target.value);
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.container.contains(e.target)) {
+                        this.closeDropdown();
+                    }
+                });
+            }
+            
+            renderOptions() {
+                this.optionsContainer.innerHTML = '';
+                
+                // Add "All" option
+                const allOption = this.createOption('All', 'all', this.selectedValues.size === this.options.length);
+                this.optionsContainer.appendChild(allOption);
+                
+                // Add regular options
+                this.filteredOptions.forEach(option => {
+                    const id = this.getOptionId(option);
+                    const name = this.getOptionName(option);
+                    const optionEl = this.createOption(name, id, this.selectedValues.has(id));
+                    this.optionsContainer.appendChild(optionEl);
+                });
+            }
+            
+            createOption(label, value, checked) {
+                const div = document.createElement('div');
+                div.className = 'multiselect-option';
+                if (value === 'all') div.classList.add('multiselect-all');
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = checked;
+                checkbox.value = value;
+                
+                const labelEl = document.createElement('label');
+                labelEl.textContent = label;
+                
+                checkbox.addEventListener('change', () => {
+                    if (value === 'all') {
+                        this.toggleAll(checkbox.checked);
+                    } else {
+                        this.toggleOption(value, checkbox.checked);
+                    }
+                });
+                
+                div.appendChild(checkbox);
+                div.appendChild(labelEl);
+                
+                return div;
+            }
+            
+            toggleAll(checked) {
+                if (checked) {
+                    this.options.forEach(opt => this.selectedValues.add(this.getOptionId(opt)));
+                } else {
+                    this.selectedValues.clear();
+                }
+                this.renderOptions();
+                this.updateText();
+                this.onChange();
+            }
+            
+            toggleOption(value, checked) {
+                if (checked) {
+                    this.selectedValues.add(value);
+                } else {
+                    this.selectedValues.delete(value);
+                }
+                this.renderOptions();
+                this.updateText();
+                this.onChange();
+            }
+            
+            filterOptions(searchTerm) {
+                const term = searchTerm.toLowerCase();
+                this.filteredOptions = this.options.filter(opt => {
+                    const searchText = this.getOptionName(opt).toLowerCase();
+                    return searchText.includes(term);
+                });
+                this.renderOptions();
+            }
+            
+            updateText() {
+                if (this.selectedValues.size === 0) {
+                    this.textSpan.textContent = 'None selected';
+                } else if (this.selectedValues.size === this.options.length) {
+                    this.textSpan.textContent = 'All selected';
+                } else if (this.selectedValues.size <= 3) {
+                    // Show friendly names instead of IDs
+                    const selectedNames = Array.from(this.selectedValues).map(id => {
+                        const option = this.options.find(opt => this.getOptionId(opt) === id);
+                        return option ? this.getOptionName(option) : id;
+                    });
+                    this.textSpan.textContent = selectedNames.join(', ');
+                } else {
+                    this.textSpan.textContent = `${this.selectedValues.size} selected`;
+                }
+            }
+            
+            toggleDropdown() {
+                this.dropdown.style.display = this.dropdown.style.display === 'block' ? 'none' : 'block';
+                if (this.dropdown.style.display === 'block') {
+                    this.searchInput.focus();
+                }
+            }
+            
+            closeDropdown() {
+                this.dropdown.style.display = 'none';
+                this.searchInput.value = '';
+                this.filteredOptions = [...this.options];
+                this.renderOptions();
+            }
+            
+            getSelected() {
+                return Array.from(this.selectedValues);
+            }
+            
+            setSelected(values) {
+                this.selectedValues = new Set(values);
+                this.renderOptions();
+                this.updateText();
+            }
+            
+            onChange() {
+                // Override this method to handle changes
+            }
+        }
+        
+        // Global multiselect instances
+        let currenciesMultiSelect;
+        let coordinatorsMultiSelect;
+        
+        // Bot enabled state
+        let botEnabled = true;
+        
+        // Original form values for change detection
+        let originalFormValues = {};
+        
+        // Helper to show messages with auto-dismiss
+        function showMessage(text, type, duration) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message message-${type}`;
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'message';
+                }, duration);
+            }
+        }
+        
+        // Update bot status display and icon
+        function updateBotStatusDisplay(enabled, whatsappReady) {
+            const botStatus = document.getElementById('bot-status');
+            const pauseIcon = document.getElementById('pause-icon');
+            const playIcon = document.getElementById('play-icon');
+            const toggleBtn = document.getElementById('bot-toggle-btn');
+            
+            botEnabled = enabled;
+            
+            if (!whatsappReady) {
+                // WhatsApp not ready - disable button
+                if (toggleBtn) toggleBtn.disabled = true;
+                return;
+            }
+            
+            if (toggleBtn) toggleBtn.disabled = false;
+            
+            if (enabled) {
+                botStatus.textContent = 'Running';
+                botStatus.className = 'status-value status-running';
+                if (pauseIcon) pauseIcon.style.display = 'block';
+                if (playIcon) playIcon.style.display = 'none';
+                if (toggleBtn) toggleBtn.title = 'Pause Bot';
+            } else {
+                botStatus.textContent = 'Paused';
+                botStatus.className = 'status-value status-paused';
+                if (pauseIcon) pauseIcon.style.display = 'none';
+                if (playIcon) playIcon.style.display = 'block';
+                if (toggleBtn) toggleBtn.title = 'Resume Bot';
+            }
+        }
+        
+        // Fields to track for form changes (excludes BOT_ENABLED which is controlled separately)
+        const TRACKED_FIELDS = [
+            'WHATSAPP_GROUP_NAME',
+            'CHECK_INTERVAL_MINUTES', 
+            'TARGET_CURRENCIES',
+            'LANGUAGE',
+            'ROBOSATS_API_URL',
+            'ROBOSATS_COORDINATORS',
+            'ROBOSATS_ONION_URL'
+        ];
+        
+        // Get current form values (only tracked fields)
+        function getCurrentFormValues() {
+            const values = {};
+            TRACKED_FIELDS.forEach(field => {
+                const input = document.querySelector(`[name="${field}"]`);
+                if (input) {
+                    values[field] = (input.value || '').trim();
+                }
+            });
+            return values;
+        }
+        
+        // Check if form has changes
+        function hasFormChanged() {
+            if (Object.keys(originalFormValues).length === 0) {
+                return false; // Not initialized yet
+            }
+            const currentValues = getCurrentFormValues();
+            const changedFields = [];
+            for (const field of TRACKED_FIELDS) {
+                const current = currentValues[field] || '';
+                const original = originalFormValues[field] || '';
+                if (current !== original) {
+                    changedFields.push(`${field}: "${original}" → "${current}"`);
+                }
+            }
+            if (changedFields.length > 0) {
+                console.log('Changed fields:', changedFields);
+                return true;
+            }
+            return false;
+        }
+        
+        // Update save button state
+        let isFormInitialized = false;
+        
+        function updateSaveButtonState() {
+            if (!isFormInitialized) {
+                console.log('Form not initialized yet, skipping updateSaveButtonState');
+                return;
+            }
+            const saveBtn = document.querySelector('button[type="submit"]');
+            if (saveBtn) {
+                const hasChanges = hasFormChanged();
+                console.log('updateSaveButtonState called, hasChanges:', hasChanges);
+                saveBtn.disabled = !hasChanges;
+            }
+        }
+        
         // Load current settings
         async function loadSettings() {
+            // Prevent reloading if already initialized (to avoid resetting form state)
+            if (isFormInitialized) {
+                console.log('Form already initialized, skipping loadSettings');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/settings');
                 const settings = await response.json();
                 
+                // Load BOT_ENABLED separately (not a form field anymore)
+                if (settings.BOT_ENABLED !== undefined) {
+                    botEnabled = settings.BOT_ENABLED !== 'false' && settings.BOT_ENABLED !== false;
+                }
+                
                 Object.keys(settings).forEach(key => {
                     const input = document.querySelector(`[name="${key}"]`);
-                    if (input && settings[key]) {
-                        input.value = settings[key];
+                    if (input && settings[key] !== undefined && key !== 'BOT_ENABLED') {
+                        if (input.type === 'checkbox') {
+                            input.checked = settings[key] !== 'false' && settings[key] !== false;
+                        } else if (key !== 'TARGET_CURRENCIES' && key !== 'ROBOSATS_COORDINATORS') {
+                            input.value = settings[key];
+                        }
                     }
                 });
+                
+                // Load currencies multiselect
+                const currencies = await fetch('/api/currencies').then(r => r.json());
+                const selectedCurrencies = settings.TARGET_CURRENCIES ? settings.TARGET_CURRENCIES.split(',').map(c => c.trim()) : [];
+                currenciesMultiSelect = new MultiSelect('currencies-multiselect', currencies, selectedCurrencies);
+                currenciesMultiSelect.onChange = () => {
+                    document.getElementById('target-currencies').value = currenciesMultiSelect.getSelected().join(',');
+                    updateSaveButtonState();
+                };
+                document.getElementById('target-currencies').value = currenciesMultiSelect.getSelected().join(',');
+                
+                // Load coordinators multiselect
+                const coordinators = await fetch('/api/coordinators').then(r => r.json());
+                const selectedCoordinators = settings.ROBOSATS_COORDINATORS ? settings.ROBOSATS_COORDINATORS.split(',').map(c => c.trim()) : [];
+                coordinatorsMultiSelect = new MultiSelect('coordinators-multiselect', coordinators, selectedCoordinators);
+                coordinatorsMultiSelect.onChange = () => {
+                    document.getElementById('robosats-coordinators').value = coordinatorsMultiSelect.getSelected().join(',');
+                    updateSaveButtonState();
+                };
+                document.getElementById('robosats-coordinators').value = coordinatorsMultiSelect.getSelected().join(',');
+                
+                // Store original values for change detection (now that all fields are populated)
+                originalFormValues = getCurrentFormValues();
+                console.log('Original form values captured:', originalFormValues);
+                
+                // Mark form as initialized
+                isFormInitialized = true;
+                
+                // Initial button state
+                updateSaveButtonState();
+                
+                // Add change listeners to form inputs
+                const form = document.getElementById('settings-form');
+                form.querySelectorAll('input:not([type="hidden"]), select').forEach(input => {
+                    input.addEventListener('change', updateSaveButtonState);
+                    if (input.type === 'text' || input.type === 'url' || input.type === 'number') {
+                        input.addEventListener('input', updateSaveButtonState);
+                    }
+                });
+                
             } catch (error) {
                 console.error('Error loading settings:', error);
             }
         }
 
+        // Enable/disable form based on WhatsApp connection status
+        function setFormEnabled(enabled) {
+            const form = document.getElementById('settings-form');
+            const inputs = form.querySelectorAll('input:not([type="checkbox"]), select, .multiselect-trigger');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const testBtn = document.getElementById('test-message-btn');
+            const warning = document.getElementById('connection-warning');
+            
+            // Show/hide connection warning
+            if (warning) {
+                warning.style.display = enabled ? 'none' : 'block';
+            }
+            
+            inputs.forEach(input => {
+                if (enabled) {
+                    input.removeAttribute('disabled');
+                    input.style.opacity = '1';
+                    input.style.cursor = '';
+                } else {
+                    input.setAttribute('disabled', 'disabled');
+                    input.style.opacity = '0.5';
+                    input.style.cursor = 'not-allowed';
+                }
+            });
+            
+            // Handle multiselect dropdowns
+            const multiselects = document.querySelectorAll('.multiselect');
+            multiselects.forEach(ms => {
+                if (enabled) {
+                    ms.style.pointerEvents = '';
+                    ms.style.opacity = '1';
+                } else {
+                    ms.style.pointerEvents = 'none';
+                    ms.style.opacity = '0.5';
+                }
+            });
+            
+            // Don't modify submit button here - it's controlled by form change detection
+            // Only disable it when form is disabled, but let change detection enable it
+            if (submitBtn && !enabled) {
+                submitBtn.disabled = true;
+            } else if (submitBtn && enabled && isFormInitialized) {
+                // Let change detection handle the enabled state
+                updateSaveButtonState();
+            }
+            
+            if (testBtn) {
+                testBtn.disabled = !enabled;
+            }
+            
+        }
+        
         // Load bot status
         async function loadStatus() {
             try {
                 const response = await fetch('/api/status');
                 const status = await response.json();
                 
-                const botStatus = document.getElementById('bot-status');
                 const whatsappStatus = document.getElementById('whatsapp-status');
                 
                 if (status.isReady) {
-                    botStatus.textContent = 'Running';
-                    botStatus.className = 'status-value status-running';
+                    updateBotStatusDisplay(botEnabled, true);
                     whatsappStatus.textContent = 'Connected';
                     whatsappStatus.className = 'status-value status-running';
                     document.getElementById('qr-section').style.display = 'none';
+                    setFormEnabled(true);
                 } else if (status.qrData) {
+                    const botStatus = document.getElementById('bot-status');
                     botStatus.textContent = 'Waiting for Auth';
                     botStatus.className = 'status-value status-waiting';
                     whatsappStatus.textContent = 'Scan QR Code';
                     whatsappStatus.className = 'status-value status-waiting';
                     document.getElementById('qr-section').style.display = 'block';
                     document.getElementById('qr-code').src = status.qrData;
+                    setFormEnabled(false);
+                    updateBotStatusDisplay(botEnabled, false);
                 } else {
+                    const botStatus = document.getElementById('bot-status');
                     botStatus.textContent = 'Starting...';
                     botStatus.className = 'status-value status-waiting';
                     whatsappStatus.textContent = 'Initializing';
                     whatsappStatus.className = 'status-value status-waiting';
+                    setFormEnabled(false);
+                    updateBotStatusDisplay(botEnabled, false);
                 }
             } catch (error) {
                 console.error('Error loading status:', error);
                 document.getElementById('bot-status').textContent = 'Error';
                 document.getElementById('whatsapp-status').textContent = 'Error';
+                setFormEnabled(false);
             }
         }
 
@@ -180,6 +603,8 @@
                     document.getElementById('qr-code').src = data.qrData;
                     document.getElementById('whatsapp-status').textContent = 'Scan QR Code';
                     document.getElementById('whatsapp-status').className = 'status-value status-waiting';
+                    setFormEnabled(false);
+                    updateBotStatusDisplay(botEnabled, false);
                 }
                 
                 if (data.authenticated || data.ready) {
@@ -187,8 +612,8 @@
                     document.getElementById('whatsapp-status').textContent = 'Connected';
                     document.getElementById('whatsapp-status').className = 'status-value status-running';
                     if (data.ready) {
-                        document.getElementById('bot-status').textContent = 'Running';
-                        document.getElementById('bot-status').className = 'status-value status-running';
+                        updateBotStatusDisplay(botEnabled, true);
+                        setFormEnabled(true);
                     }
                 }
             };
@@ -205,6 +630,13 @@
             const formData = new FormData(e.target);
             const settings = Object.fromEntries(formData.entries());
             
+            // Don't include BOT_ENABLED - it's controlled by the separate pause/play button
+            delete settings.BOT_ENABLED;
+            
+            // Get current BOT_ENABLED value from config to preserve it
+            const currentConfig = await fetch('/api/settings').then(r => r.json());
+            settings.BOT_ENABLED = currentConfig.BOT_ENABLED || 'true';
+            
             try {
                 const response = await fetch('/api/settings', {
                     method: 'POST',
@@ -216,29 +648,103 @@
                 
                 const result = await response.json();
                 
-                const messageDiv = document.getElementById('message');
                 if (response.ok) {
-                    messageDiv.textContent = result.message;
-                    messageDiv.className = 'message message-success';
+                    showMessage(result.message, 'success', 5000);
+                    // Update original values after successful save
+                    originalFormValues = getCurrentFormValues();
+                    console.log('Original form values updated after save:', originalFormValues);
+                    updateSaveButtonState();
                 } else {
-                    messageDiv.textContent = result.error || 'Failed to save settings';
-                    messageDiv.className = 'message message-error';
+                    showMessage(result.error || 'Failed to save settings', 'error', 10000);
                 }
-                
-                setTimeout(() => {
-                    messageDiv.textContent = '';
-                    messageDiv.className = 'message';
-                }, 5000);
             } catch (error) {
                 console.error('Error saving settings:', error);
-                const messageDiv = document.getElementById('message');
-                messageDiv.textContent = 'Error saving settings';
-                messageDiv.className = 'message message-error';
+                showMessage('Error saving settings', 'error', 10000);
             }
         });
 
+        // Test message button
+        document.getElementById('test-message-btn').addEventListener('click', async (e) => {
+            e.preventDefault(); // Prevent any form-related behavior
+            e.stopPropagation();
+            
+            const btn = document.getElementById('test-message-btn');
+            const originalText = btn.textContent;
+            const groupNameInput = document.getElementById('whatsapp-group');
+            const groupName = groupNameInput.value.trim();
+            
+            if (!groupName) {
+                showMessage('Please enter a group name first', 'error', 10000);
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch('/api/test-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ groupName: groupName })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(result.message, 'success', 5000);
+                } else {
+                    showMessage(result.error || 'Failed to send test message', 'error', 10000);
+                }
+            } catch (error) {
+                console.error('Error sending test message:', error);
+                showMessage('Error sending test message', 'error', 10000);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        // Bot toggle button (pause/resume)
+        document.getElementById('bot-toggle-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('bot-toggle-btn');
+            btn.disabled = true;
+            
+            try {
+                const newState = !botEnabled;
+                const settings = await fetch('/api/settings').then(r => r.json());
+                settings.BOT_ENABLED = newState ? 'true' : 'false';
+                
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    updateBotStatusDisplay(newState, true);
+                    showMessage(newState ? 'Bot resumed' : 'Bot paused', 'success', 3000);
+                } else {
+                    const result = await response.json();
+                    showMessage(result.error || 'Failed to toggle bot', 'error', 5000);
+                }
+            } catch (error) {
+                console.error('Error toggling bot:', error);
+                showMessage('Error toggling bot', 'error', 5000);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        
         // Refresh status button
-        document.getElementById('refresh-btn').addEventListener('click', loadStatus);
+        document.getElementById('refresh-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            loadStatus();
+        });
 
         // Initialize
         loadSettings();

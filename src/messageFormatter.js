@@ -12,7 +12,8 @@ const STRINGS = {
     payment: 'Payment',
     expiresAt: 'Expires in',
     link: 'Link',
-    seeOffer: 'See offer'
+    seeOffer: 'See offer',
+    offer: 'Offer'
   },
   ES: {
     buy: '🟢 COMPRA',
@@ -24,7 +25,8 @@ const STRINGS = {
     payment: 'Pago',
     expiresAt: 'Expira en',
     link: 'Link',
-    seeOffer: 'Ver oferta'
+    seeOffer: 'Ver oferta',
+    offer: 'Oferta'
   }
 };
 
@@ -140,7 +142,7 @@ function formatOffer(offer) {
   const link = `${config.ROBOSATS_ONION_URL}/order/${coordinatorId}/${offer.id}`;
   
   return `
-*${type} Bitcoin - Robosats (${coordinatorName})*
+*${type} ${strings.offer} (${coordinatorName})*
 ━━━━━━━━━━━━━━━━━
 💰 *${strings.amount}:* ${amount}
 💵 *${strings.price}:* ${price}${premium ? ` (${premium})` : ''}

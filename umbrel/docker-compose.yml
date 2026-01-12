@@ -27,19 +27,19 @@ services:
       CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-5}
       TARGET_CURRENCIES: ${TARGET_CURRENCIES:-USD,EUR}
       LANGUAGE: ${LANGUAGE:-EN}
-      TIMEZONE: ${TIMEZONE:-UTC}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+      BOT_ENABLED: ${BOT_ENABLED:-true}
       
       # RoboSats configuration
-      ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://robosats_web_1:12596}
+      ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://localhost:12596}
       ROBOSATS_COORDINATORS: ${ROBOSATS_COORDINATORS:-bazaar,moon,lake}
       ROBOSATS_ONION_URL: ${ROBOSATS_ONION_URL:-}
       
       # Configuration file path
       CONFIG_FILE: /data/config.json
       
-      # Web UI port
+      # Web UI port and logging
       WEB_PORT: 3000
+      LOG_LEVEL: info
     networks:
       default:
         ipv4_address: $APP_ROBOSATS_WHATSAPP_NOTIFIER_IP

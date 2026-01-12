@@ -3,5 +3,5 @@ node_modules/
 .cursor/
 .wwebjs_auth/
 .wwebjs_cache/
-data/seen_offers.json
+data/
 *.log

@@ -1,6 +1,10 @@
 require('dotenv').config({ override: true });
 const fs = require('fs');
 const path = require('path');
+const EventEmitter = require('events');
+
+// Create event emitter for config changes
+const configEmitter = new EventEmitter();
 
 // Currency ID mapping from RoboSats
 // Source: https://github.com/RoboSats/robosats/blob/main/frontend/static/assets/currencies.json
@@ -149,14 +153,9 @@ function parseLanguage() {
   return lang;
 }
 
-// Parse timezone (defaults to UTC if not specified)
-function parseTimezone() {
-  return process.env.TIMEZONE || 'UTC';
-}
-
 // Load configuration from JSON file if it exists, otherwise use env vars
 function loadConfig() {
-  const configPath = process.env.CONFIG_FILE || '/data/config.json';
+  const configPath = getConfigPath();
   
   if (fs.existsSync(configPath)) {
     try {
@@ -176,17 +175,39 @@ function loadConfig() {
   return false;
 }
 
+// Get config file path - use ./data for local development, /data for Docker
+function getConfigPath() {
+  if (process.env.CONFIG_FILE) {
+    return process.env.CONFIG_FILE;
+  }
+  // Check if we're in Docker (if /data exists and is writable)
+  try {
+    if (fs.existsSync('/data')) {
+      fs.accessSync('/data', fs.constants.W_OK);
+      return '/data/config.json';
+    }
+  } catch (e) {
+    // Not accessible, fall back to local path
+  }
+  return './data/config.json';
+}
+
 // Save configuration to JSON file
 function saveConfig(configData) {
-  const configPath = process.env.CONFIG_FILE || '/data/config.json';
+  const configPath = getConfigPath();
   const configDir = path.dirname(configPath);
   
   // Create directory if it doesn't exist
-  if (!fs.existsSync(configDir)) {
-    fs.mkdirSync(configDir, { recursive: true });
+  try {
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error saving config file:', error);
+    throw new Error(`Failed to save configuration: ${error.message}`);
   }
-  
-  fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8');
 }
 
 // Load config from file on module load
@@ -202,9 +223,30 @@ function getConfig() {
     ROBOSATS_ONION_URL: process.env.ROBOSATS_ONION_URL,
     TARGET_CURRENCIES: process.env.TARGET_CURRENCIES,
     LANGUAGE: process.env.LANGUAGE,
-    TIMEZONE: process.env.TIMEZONE,
-    LOG_LEVEL: process.env.LOG_LEVEL
+    BOT_ENABLED: process.env.BOT_ENABLED
   };
+}
+
+// Reload configuration and update module exports
+function reloadConfig() {
+  // Reload from config file
+  loadConfig();
+  
+  // Update module.exports with new values
+  const config = module.exports;
+  config.WHATSAPP_GROUP_NAME = process.env.WHATSAPP_GROUP_NAME;
+  config.CHECK_INTERVAL_MS = parseCheckInterval();
+  config.ROBOSATS_USE_MOCK = process.env.ROBOSATS_USE_MOCK === 'true';
+  config.ROBOSATS_API_URL = process.env.ROBOSATS_API_URL;
+  config.ROBOSATS_COORDINATORS = process.env.ROBOSATS_COORDINATORS;
+  config.ROBOSATS_ONION_URL = process.env.ROBOSATS_ONION_URL;
+  config.TARGET_CURRENCIES = parseTargetCurrencies();
+  config.LANGUAGE = parseLanguage();
+  config.LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+  config.BOT_ENABLED = process.env.BOT_ENABLED !== 'false'; // Default to true
+  
+  // Emit config change event
+  configEmitter.emit('configChanged');
 }
 
 module.exports = {
@@ -227,8 +269,8 @@ module.exports = {
   // Language configuration
   LANGUAGE: parseLanguage(),
   
-  // Timezone configuration
-  TIMEZONE: parseTimezone(),
+  // Bot enabled/disabled state
+  BOT_ENABLED: process.env.BOT_ENABLED !== 'false', // Default to true
   
   DATA_DIR: './data',
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
@@ -236,5 +278,9 @@ module.exports = {
   // Configuration management functions
   loadConfig,
   saveConfig,
-  getConfig
+  getConfig,
+  reloadConfig,
+  
+  // Event emitter for config changes
+  configEmitter
 };

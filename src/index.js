@@ -6,8 +6,17 @@ const config = require('./config');
 const logger = require('./logger');
 const WebServer = require('./web/server');
 
+// Store the interval timer so we can restart it on config change
+let checkInterval = null;
+
 async function checkForNewOffers() {
   try {
+    // Check if bot is enabled
+    if (!config.BOT_ENABLED) {
+      logger.info('Bot is disabled, skipping check');
+      return;
+    }
+    
     // Clean up expired offers
     await offerTracker.cleanupExpiredOffers();
     
@@ -41,6 +50,18 @@ async function checkForNewOffers() {
   }
 }
 
+// Start or restart the check interval
+function startCheckInterval() {
+  // Clear existing interval if any
+  if (checkInterval) {
+    clearInterval(checkInterval);
+  }
+  
+  // Schedule periodic checks with current interval
+  checkInterval = setInterval(checkForNewOffers, config.CHECK_INTERVAL_MS);
+  logger.info(`Check interval set to ${config.CHECK_INTERVAL_MS / 60000} minutes`);
+}
+
 async function start() {
   try {
     logger.info('Starting Robosats WhatsApp Notifier...');
@@ -68,8 +89,14 @@ async function start() {
     // Run first check immediately
     await checkForNewOffers();
     
-    // Schedule periodic checks
-    setInterval(checkForNewOffers, config.CHECK_INTERVAL_MS);
+    // Start the check interval
+    startCheckInterval();
+    
+    // Listen for config changes and restart interval
+    config.configEmitter.on('configChanged', () => {
+      logger.info('Configuration changed, restarting check interval...');
+      startCheckInterval();
+    });
     
   } catch (error) {
     logger.error('Fatal error during startup:', error);
