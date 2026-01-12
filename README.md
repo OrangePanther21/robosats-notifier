@@ -10,6 +10,8 @@ A Node.js bot that monitors the Robosats order book for new offers every X minut
 - 💾 JSON-based offer tracking to avoid duplicates
 - 📝 Comprehensive logging system
 - 🔐 Persistent WhatsApp authentication
+- 🌐 Web UI for configuration and QR code authentication
+- 🐳 Docker and Umbrel app support
 - 🚀 Easy deployment to Umbrel or any Linux server
 
 ## Prerequisites
@@ -21,6 +23,37 @@ A Node.js bot that monitors the Robosats order book for new offers every X minut
 - **RoboSats NodeApp running** (recommended - Docker-based)
 
 ## Installation
+
+### Option 1: Umbrel App (Recommended)
+
+The easiest way to run this bot is as an Umbrel app with a web interface:
+
+1. Add the community app store to your Umbrel
+2. Install "RoboSats WhatsApp Notifier" from the Finance category
+3. Access the web UI at port 3000
+4. Scan the QR code to authenticate WhatsApp
+5. Configure your settings through the web interface
+
+See the [Umbrel deployment guide](#umbrel-app-deployment) below for more details.
+
+### Option 2: Docker
+
+Run using Docker:
+
+```bash
+docker build -t robosats-whatsapp-notifier .
+docker run -d \
+  -p 3000:3000 \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/.wwebjs_auth:/app/.wwebjs_auth \
+  -e WHATSAPP_GROUP_NAME="Your Group Name" \
+  -e TARGET_CURRENCIES="USD,EUR" \
+  robosats-whatsapp-notifier
+```
+
+Access the web UI at `http://localhost:3000` to configure settings and authenticate WhatsApp.
+
+### Option 3: Manual Installation
 
 1. **Clone or download this repository**
 
@@ -145,19 +178,33 @@ npm run dev
 robosats-whatsapp-notifier/
 ├── src/
 │   ├── index.js              # Main entry point & orchestration
-│   ├── config.js             # Configuration management
+│   ├── config.js             # Configuration management (with JSON file support)
 │   ├── robosatsClient.js     # Robosats API integration
-│   ├── whatsappClient.js     # WhatsApp client setup
+│   ├── whatsappClient.js     # WhatsApp client (with EventEmitter for QR codes)
 │   ├── offerTracker.js       # Track seen offers (JSON storage)
 │   ├── messageFormatter.js   # Format offers for WhatsApp
 │   ├── logger.js             # Logging utility
-│   └── test.js               # Testing script
+│   ├── test.js               # Testing script
+│   └── web/                  # Web UI
+│       ├── server.js         # Express server with SSE for QR codes
+│       └── public/
+│           ├── index.html    # Settings page
+│           └── style.css     # Styling
+├── umbrel/                   # Umbrel app files
+│   ├── umbrel-app.yml        # App manifest
+│   ├── docker-compose.yml    # Umbrel-specific compose
+│   └── exports.sh            # Environment exports
+├── umbrel-app-store/         # Community app store structure
+│   ├── robosats-whatsapp-notifier/
+│   ├── umbrel-app-store.yml
+│   └── README.md
 ├── data/
-│   └── seen_offers.json      # Stored offer IDs (auto-generated)
+│   ├── seen_offers.json      # Stored offer IDs (auto-generated)
+│   └── config.json           # Settings from web UI (auto-generated)
 ├── .wwebjs_auth/             # WhatsApp auth session (auto-generated)
-├── .wwebjs_cache/            # WhatsApp cache (auto-generated)
+├── Dockerfile                # Docker image definition
 ├── package.json
-├── .env                      # Environment variables
+├── .env                      # Environment variables (optional with web UI)
 ├── .gitignore
 └── README.md
 ```
@@ -176,7 +223,54 @@ robosats-whatsapp-notifier/
 
 **Individual Messages**: Each new offer is sent as a separate WhatsApp message, making it easier to reply, react, or share specific offers. A small delay (1 second) is added between messages when multiple offers are found to avoid rate limiting.
 
-## Deployment to Umbrel
+## Web UI
+
+The bot includes a web UI for easy configuration and WhatsApp authentication:
+
+- **Access**: `http://localhost:3000` (or your Umbrel/server IP)
+- **Features**:
+  - Real-time QR code display for WhatsApp authentication
+  - Bot status monitoring (running/waiting for auth/connected)
+  - Settings form for all configuration options
+  - No restart needed for most settings (container restart may be required)
+
+The web UI uses Server-Sent Events (SSE) to display QR codes in real-time without page refresh.
+
+## Umbrel App Deployment
+
+### Installing from Community App Store
+
+1. **Add Community App Store** (if not already added)
+   - Open Umbrel dashboard
+   - Go to App Store settings
+   - Add the RoboSats community app store
+
+2. **Install the App**
+   - Browse to Finance category
+   - Find "RoboSats WhatsApp Notifier"
+   - Click Install
+   - Wait for installation to complete
+
+3. **Initial Setup**
+   - Open the app (port 3000)
+   - Scan the QR code with WhatsApp mobile app
+   - Configure your settings through the web UI
+   - Save settings
+
+4. **Requirements**
+   - RoboSats app must be installed first (dependency)
+   - The bot will automatically connect to RoboSats via internal Docker network
+
+### Files Structure for Umbrel
+
+The `umbrel/` directory contains all files needed for Umbrel deployment:
+- `umbrel-app.yml` - App metadata and dependencies
+- `docker-compose.yml` - Service definition with volume mounts
+- `exports.sh` - Environment exports
+
+The `umbrel-app-store/` directory is ready to be submitted to the Umbrel community app store.
+
+## Manual Deployment to Umbrel
 
 ### 1. Transfer Files
 
@@ -466,19 +560,22 @@ According to Robosats documentation:
 
 - [ ] Add filters for specific payment methods
 - [ ] Add price alerts (notify only if price is within range)
-- [ ] Web dashboard for configuration
 - [ ] Multiple WhatsApp groups support
 - [ ] Database instead of JSON for scalability
 - [ ] Telegram notifications support
-- [ ] Docker container support
 
 **Already Implemented:**
+- ✅ Web UI for configuration
+- ✅ Docker container support
+- ✅ Umbrel app package
 - ✅ Support multiple currencies
 - ✅ Amount ranges (min-max) support
 - ✅ Individual messages per offer
-- ✅ Automatic cleanup of old offers (24h)
+- ✅ Automatic cleanup of old offers
 - ✅ Coordinator name mapping
 - ✅ Relative expiration time display
+- ✅ QR code authentication via web UI
+- ✅ File-based configuration (JSON)
 
 ## License
 

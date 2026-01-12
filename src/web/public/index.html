@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoboSats WhatsApp Notifier</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 RoboSats WhatsApp Notifier</h1>
+            <p class="subtitle">Configure your bot settings and authenticate WhatsApp</p>
+        </header>
+
+        <!-- Status Section -->
+        <section class="status-section">
+            <h2>Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-label">Bot Status:</span>
+                    <span id="bot-status" class="status-value">Checking...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">WhatsApp:</span>
+                    <span id="whatsapp-status" class="status-value">Checking...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- QR Code Section -->
+        <section class="qr-section" id="qr-section" style="display: none;">
+            <h2>WhatsApp Authentication</h2>
+            <p>Scan this QR code with your WhatsApp mobile app:</p>
+            <div class="qr-container">
+                <img id="qr-code" src="" alt="QR Code">
+            </div>
+        </section>
+
+        <!-- Settings Form -->
+        <section class="settings-section">
+            <h2>Settings</h2>
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="whatsapp-group">WhatsApp Group Name</label>
+                    <input type="text" id="whatsapp-group" name="WHATSAPP_GROUP_NAME" required>
+                    <small>The exact name of your WhatsApp group</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="check-interval">Check Interval (minutes)</label>
+                    <input type="number" id="check-interval" name="CHECK_INTERVAL_MINUTES" min="1" value="5" required>
+                    <small>How often to check for new offers</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="target-currencies">Target Currencies</label>
+                    <input type="text" id="target-currencies" name="TARGET_CURRENCIES" placeholder="USD,EUR,GBP" required>
+                    <small>Comma-separated list of currency codes</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="language">Language</label>
+                    <select id="language" name="LANGUAGE">
+                        <option value="EN">English</option>
+                        <option value="ES">Spanish</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <input type="text" id="timezone" name="TIMEZONE" value="UTC">
+                    <small>e.g., America/New_York, Europe/London, UTC</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="robosats-api">RoboSats API URL</label>
+                    <input type="url" id="robosats-api" name="ROBOSATS_API_URL" placeholder="http://robosats:12596">
+                    <small>Internal Docker URL for RoboSats API</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="robosats-coordinators">RoboSats Coordinators</label>
+                    <input type="text" id="robosats-coordinators" name="ROBOSATS_COORDINATORS" placeholder="bazaar,moon,lake">
+                    <small>Comma-separated list of coordinator IDs</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="robosats-onion">RoboSats Onion URL</label>
+                    <input type="url" id="robosats-onion" name="ROBOSATS_ONION_URL" placeholder="http://robosats...onion">
+                    <small>Tor onion address for RoboSats</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="log-level">Log Level</label>
+                    <select id="log-level" name="LOG_LEVEL">
+                        <option value="error">Error</option>
+                        <option value="warn">Warning</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Settings</button>
+                    <button type="button" id="refresh-btn" class="btn btn-secondary">Refresh Status</button>
+                </div>
+            </form>
+
+            <div id="message" class="message"></div>
+        </section>
+
+        <footer>
+            <p>After saving settings, restart the container for changes to take effect.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load current settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                const settings = await response.json();
+                
+                Object.keys(settings).forEach(key => {
+                    const input = document.querySelector(`[name="${key}"]`);
+                    if (input && settings[key]) {
+                        input.value = settings[key];
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Load bot status
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                const botStatus = document.getElementById('bot-status');
+                const whatsappStatus = document.getElementById('whatsapp-status');
+                
+                if (status.isReady) {
+                    botStatus.textContent = 'Running';
+                    botStatus.className = 'status-value status-running';
+                    whatsappStatus.textContent = 'Connected';
+                    whatsappStatus.className = 'status-value status-running';
+                    document.getElementById('qr-section').style.display = 'none';
+                } else if (status.qrData) {
+                    botStatus.textContent = 'Waiting for Auth';
+                    botStatus.className = 'status-value status-waiting';
+                    whatsappStatus.textContent = 'Scan QR Code';
+                    whatsappStatus.className = 'status-value status-waiting';
+                    document.getElementById('qr-section').style.display = 'block';
+                    document.getElementById('qr-code').src = status.qrData;
+                } else {
+                    botStatus.textContent = 'Starting...';
+                    botStatus.className = 'status-value status-waiting';
+                    whatsappStatus.textContent = 'Initializing';
+                    whatsappStatus.className = 'status-value status-waiting';
+                }
+            } catch (error) {
+                console.error('Error loading status:', error);
+                document.getElementById('bot-status').textContent = 'Error';
+                document.getElementById('whatsapp-status').textContent = 'Error';
+            }
+        }
+
+        // Setup Server-Sent Events for real-time QR code updates
+        function setupSSE() {
+            const eventSource = new EventSource('/api/qr-events');
+            
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.qrData) {
+                    document.getElementById('qr-section').style.display = 'block';
+                    document.getElementById('qr-code').src = data.qrData;
+                    document.getElementById('whatsapp-status').textContent = 'Scan QR Code';
+                    document.getElementById('whatsapp-status').className = 'status-value status-waiting';
+                }
+                
+                if (data.authenticated || data.ready) {
+                    document.getElementById('qr-section').style.display = 'none';
+                    document.getElementById('whatsapp-status').textContent = 'Connected';
+                    document.getElementById('whatsapp-status').className = 'status-value status-running';
+                    if (data.ready) {
+                        document.getElementById('bot-status').textContent = 'Running';
+                        document.getElementById('bot-status').className = 'status-value status-running';
+                    }
+                }
+            };
+            
+            eventSource.onerror = (error) => {
+                console.error('SSE error:', error);
+            };
+        }
+
+        // Save settings
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const settings = Object.fromEntries(formData.entries());
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                const result = await response.json();
+                
+                const messageDiv = document.getElementById('message');
+                if (response.ok) {
+                    messageDiv.textContent = result.message;
+                    messageDiv.className = 'message message-success';
+                } else {
+                    messageDiv.textContent = result.error || 'Failed to save settings';
+                    messageDiv.className = 'message message-error';
+                }
+                
+                setTimeout(() => {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'message';
+                }, 5000);
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                const messageDiv = document.getElementById('message');
+                messageDiv.textContent = 'Error saving settings';
+                messageDiv.className = 'message message-error';
+            }
+        });
+
+        // Refresh status button
+        document.getElementById('refresh-btn').addEventListener('click', loadStatus);
+
+        // Initialize
+        loadSettings();
+        loadStatus();
+        setupSSE();
+        
+        // Refresh status every 10 seconds
+        setInterval(loadStatus, 10000);
+    </script>
+</body>
+</html>

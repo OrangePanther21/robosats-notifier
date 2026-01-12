@@ -4,6 +4,7 @@ const offerTracker = require('./offerTracker');
 const { formatOffer } = require('./messageFormatter');
 const config = require('./config');
 const logger = require('./logger');
+const WebServer = require('./web/server');
 
 async function checkForNewOffers() {
   try {
@@ -43,6 +44,10 @@ async function checkForNewOffers() {
 async function start() {
   try {
     logger.info('Starting Robosats WhatsApp Notifier...');
+    
+    // Start web server first
+    const webServer = new WebServer(whatsappClient);
+    await webServer.start();
     
     // Initialize components
     await offerTracker.initialize();

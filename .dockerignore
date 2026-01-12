@@ -1,0 +1,11 @@
+node_modules
+.git
+.gitignore
+*.md
+.env
+.wwebjs_auth
+data
+app.log
+umbrel
+umbrel-app-store
+.cursor

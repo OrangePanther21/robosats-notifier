@@ -1,4 +1,6 @@
 require('dotenv').config({ override: true });
+const fs = require('fs');
+const path = require('path');
 
 // Currency ID mapping from RoboSats
 // Source: https://github.com/RoboSats/robosats/blob/main/frontend/static/assets/currencies.json
@@ -152,6 +154,59 @@ function parseTimezone() {
   return process.env.TIMEZONE || 'UTC';
 }
 
+// Load configuration from JSON file if it exists, otherwise use env vars
+function loadConfig() {
+  const configPath = process.env.CONFIG_FILE || '/data/config.json';
+  
+  if (fs.existsSync(configPath)) {
+    try {
+      const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      // Override process.env with values from config file
+      Object.keys(configData).forEach(key => {
+        if (configData[key] !== undefined && configData[key] !== '') {
+          process.env[key] = configData[key];
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('Error loading config file:', error.message);
+      return false;
+    }
+  }
+  return false;
+}
+
+// Save configuration to JSON file
+function saveConfig(configData) {
+  const configPath = process.env.CONFIG_FILE || '/data/config.json';
+  const configDir = path.dirname(configPath);
+  
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(configPath, JSON.stringify(configData, null, 2), 'utf8');
+}
+
+// Load config from file on module load
+loadConfig();
+
+function getConfig() {
+  return {
+    WHATSAPP_GROUP_NAME: process.env.WHATSAPP_GROUP_NAME,
+    CHECK_INTERVAL_MINUTES: process.env.CHECK_INTERVAL_MINUTES,
+    ROBOSATS_USE_MOCK: process.env.ROBOSATS_USE_MOCK,
+    ROBOSATS_API_URL: process.env.ROBOSATS_API_URL,
+    ROBOSATS_COORDINATORS: process.env.ROBOSATS_COORDINATORS,
+    ROBOSATS_ONION_URL: process.env.ROBOSATS_ONION_URL,
+    TARGET_CURRENCIES: process.env.TARGET_CURRENCIES,
+    LANGUAGE: process.env.LANGUAGE,
+    TIMEZONE: process.env.TIMEZONE,
+    LOG_LEVEL: process.env.LOG_LEVEL
+  };
+}
+
 module.exports = {
   WHATSAPP_GROUP_NAME: process.env.WHATSAPP_GROUP_NAME,
   CHECK_INTERVAL_MS: parseCheckInterval(),
@@ -176,5 +231,10 @@ module.exports = {
   TIMEZONE: parseTimezone(),
   
   DATA_DIR: './data',
-  LOG_LEVEL: process.env.LOG_LEVEL || 'info'
+  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+  
+  // Configuration management functions
+  loadConfig,
+  saveConfig,
+  getConfig
 };

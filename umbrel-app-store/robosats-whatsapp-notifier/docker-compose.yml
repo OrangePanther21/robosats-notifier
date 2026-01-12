@@ -1,0 +1,45 @@
+version: "3.7"
+
+services:
+  # app_proxy service tells Umbrel's nginx reverse proxy where to route traffic
+  # Umbrel uses subdomain routing (e.g., robosats-whatsapp-notifier.umbrel.local)
+  # so there are NO port conflicts - each app gets a unique subdomain
+  # The internal port 3000 is only used within Docker's internal network
+  app_proxy:
+    environment:
+      # Service name - Umbrel will resolve this within the Docker network
+      APP_HOST: web
+      # Internal port the app listens on (within Docker network only)
+      APP_PORT: 3000
+  
+  web:
+    image: robosats-whatsapp-notifier:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ${APP_DATA_DIR}/data:/data
+      - ${APP_DATA_DIR}/auth:/app/.wwebjs_auth
+    environment:
+      # Default configuration - can be changed via web UI
+      WHATSAPP_GROUP_NAME: ${WHATSAPP_GROUP_NAME:-}
+      CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-5}
+      TARGET_CURRENCIES: ${TARGET_CURRENCIES:-USD,EUR}
+      LANGUAGE: ${LANGUAGE:-EN}
+      TIMEZONE: ${TIMEZONE:-UTC}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # RoboSats configuration
+      ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://robosats_web_1:12596}
+      ROBOSATS_COORDINATORS: ${ROBOSATS_COORDINATORS:-bazaar,moon,lake}
+      ROBOSATS_ONION_URL: ${ROBOSATS_ONION_URL:-}
+      
+      # Configuration file path
+      CONFIG_FILE: /data/config.json
+      
+      # Web UI port
+      WEB_PORT: 3000
+    networks:
+      default:
+        ipv4_address: $APP_ROBOSATS_WHATSAPP_NOTIFIER_IP

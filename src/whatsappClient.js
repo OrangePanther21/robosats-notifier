@@ -1,10 +1,13 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
+const EventEmitter = require('events');
 const logger = require('./logger');
 const config = require('./config');
 
-class WhatsAppClient {
+class WhatsAppClient extends EventEmitter {
   constructor() {
+    super();
     this.client = new Client({
       authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
       puppeteer: {
@@ -14,32 +17,58 @@ class WhatsAppClient {
     });
 
     this.isReady = false;
+    this.isAuthenticated = false;
+    this.qrData = null;
     this.setupHandlers();
   }
 
   setupHandlers() {
-    this.client.on('qr', (qr) => {
+    this.client.on('qr', async (qr) => {
       logger.info('QR Code received. Please scan with WhatsApp:');
       qrcode.generate(qr, { small: true });
+      
+      // Generate QR code as data URL for web UI
+      try {
+        this.qrData = await QRCode.toDataURL(qr);
+        this.emit('qr', this.qrData);
+      } catch (err) {
+        logger.error('Error generating QR code:', err);
+      }
     });
 
     this.client.on('ready', () => {
       logger.info('WhatsApp client is ready!');
       this.isReady = true;
+      this.qrData = null;
+      this.emit('ready');
     });
 
     this.client.on('authenticated', () => {
       logger.info('WhatsApp authenticated successfully');
+      this.isAuthenticated = true;
+      this.qrData = null;
+      this.emit('authenticated');
     });
 
     this.client.on('auth_failure', (msg) => {
       logger.error('WhatsApp authentication failed:', msg);
+      this.emit('auth_failure', msg);
     });
 
     this.client.on('disconnected', (reason) => {
       logger.warn('WhatsApp client disconnected:', reason);
       this.isReady = false;
+      this.isAuthenticated = false;
+      this.emit('disconnected', reason);
     });
+  }
+
+  getStatus() {
+    return {
+      isReady: this.isReady,
+      isAuthenticated: this.isAuthenticated,
+      qrData: this.qrData
+    };
   }
 
   async initialize() {

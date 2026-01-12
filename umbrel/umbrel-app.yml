@@ -1,0 +1,50 @@
+manifestVersion: 1
+id: robosats-whatsapp-notifier
+category: finance
+name: RoboSats WhatsApp Notifier
+version: "1.0.0"
+tagline: Get WhatsApp notifications for new RoboSats offers
+description: >-
+  Monitor RoboSats order book and receive instant WhatsApp notifications when new offers match your criteria.
+  
+  Features:
+  - Real-time monitoring of RoboSats offers across multiple coordinators
+  - WhatsApp group notifications for new matching offers
+  - Web UI for easy configuration
+  - QR code authentication for WhatsApp
+  - Filter by currencies and coordinators
+  - Customizable check intervals
+  
+  Requirements:
+  - RoboSats app must be installed
+  - WhatsApp account for notifications
+  
+  Configuration:
+  - Access the web UI on port 3000
+  - Scan QR code to authenticate WhatsApp
+  - Configure your target currencies and group name
+  - Adjust check interval and other settings
+developer: RoboSats Community
+website: https://github.com/robosats
+dependencies:
+  - robosats
+repo: https://github.com/robosats/robosats-whatsapp-notifier
+support: https://github.com/robosats/robosats-whatsapp-notifier/issues
+port: 3000
+gallery:
+  - https://example.com/screenshot1.png
+  - https://example.com/screenshot2.png
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+torOnly: false
+permissions:
+  - STORAGE_DOWNLOADS
+submitter: RoboSats Community
+submission: https://github.com/getumbrel/umbrel-apps
+releaseNotes: >-
+  Initial release of RoboSats WhatsApp Notifier
+  - Web UI for configuration
+  - WhatsApp QR code authentication
+  - Real-time offer monitoring
+  - Multi-coordinator support
