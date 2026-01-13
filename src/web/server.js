@@ -140,7 +140,7 @@ class WebServer {
         }
 
         const notificationType = req.body.notificationType || 'group';
-        const testMessage = '🤖 *Test Message from RoboSats WhatsApp Notifier*\n\nIf you can see this message, the bot is working correctly!';
+        const testMessage = '🤖 *Test Message from RoboSats Notifier*\n\nIf you can see this message, the bot is working correctly!';
 
         if (notificationType === 'contact') {
           // Test contact message

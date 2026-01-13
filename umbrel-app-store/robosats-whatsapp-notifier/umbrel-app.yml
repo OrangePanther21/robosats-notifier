@@ -1,40 +1,40 @@
 manifestVersion: 1
-id: robosats-whatsapp-notifier
+id: robosats-notifier
 category: finance
-name: RoboSats WhatsApp Notifier
+name: RoboSats Notifier
 version: "1.0.0"
-tagline: Get WhatsApp notifications for new RoboSats offers
+tagline: Get instant notifications for new RoboSats offers
 description: >-
-  **Unofficial community tool** - Monitor RoboSats order book and receive instant WhatsApp notifications when new offers match your criteria.
+  **Unofficial community tool** - Monitor RoboSats order book and receive instant notifications when new offers match your criteria.
   
   This is an independent community project, not officially affiliated with RoboSats.
   
   Features:
   - Real-time monitoring of RoboSats offers across multiple coordinators
-  - WhatsApp group notifications for new matching offers
+  - Instant notifications for new matching offers (WhatsApp supported)
   - Web UI for easy configuration
-  - QR code authentication for WhatsApp
+  - QR code authentication
   - Filter by currencies and coordinators
   - Customizable check intervals
   
   Requirements:
   - RoboSats app must be installed
-  - WhatsApp account for notifications
+  - Messaging account for notifications (WhatsApp currently supported)
   
   Configuration:
   - Access the web UI on port 3000
-  - Scan QR code to authenticate WhatsApp
-  - Configure your target currencies and group name
+  - Scan QR code to authenticate
+  - Configure your target currencies and notification settings
   - Adjust check interval and other settings
 developer: Community Contributor
-website: https://github.com/OrangePanther21/robosats-whatsapp-notifier
+website: https://github.com/OrangePanther21/robosats-notifier
 dependencies:
   - robosats
-repo: https://github.com/OrangePanther21/robosats-whatsapp-notifier
-support: https://github.com/OrangePanther21/robosats-whatsapp-notifier/issues
+repo: https://github.com/OrangePanther21/robosats-notifier
+support: https://github.com/OrangePanther21/robosats-notifier/issues
 port: 3000
 gallery:
-  - https://raw.githubusercontent.com/OrangePanther21/robosats-whatsapp-notifier/main/docs/screenshots/screenshot-1.jpg
+  - https://raw.githubusercontent.com/OrangePanther21/robosats-notifier/main/docs/screenshots/screenshot-1.jpg
 path: ""
 defaultUsername: ""
 defaultPassword: ""
@@ -44,8 +44,8 @@ permissions:
 submitter: Community Contributor
 submission: https://github.com/getumbrel/umbrel-apps
 releaseNotes: >-
-  Initial release of RoboSats WhatsApp Notifier
+  Initial release of RoboSats Notifier
   - Web UI for configuration
-  - WhatsApp QR code authentication
+  - QR code authentication
   - Real-time offer monitoring
   - Multi-coordinator support

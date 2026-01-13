@@ -72,7 +72,7 @@ function startCheckInterval() {
 
 async function start() {
   try {
-    logger.info('Starting Robosats WhatsApp Notifier...');
+    logger.info('Starting RoboSats Notifier...');
     
     // Start web server first
     const webServer = new WebServer(whatsappClient);

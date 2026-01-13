@@ -1,9 +1,9 @@
-# RoboSats WhatsApp Notifier
+# RoboSats Notifier
 
-[![Docker](https://img.shields.io/docker/pulls/orangepanther21/robosats-whatsapp-notifier)](https://hub.docker.com/r/orangepanther21/robosats-whatsapp-notifier)
+[![Docker](https://img.shields.io/docker/pulls/orangepanther21/robosats-notifier)](https://hub.docker.com/r/orangepanther21/robosats-notifier)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Get instant WhatsApp notifications when new offers appear on [RoboSats](https://robosats.com) P2P exchange.
+Get instant notifications when new offers appear on [RoboSats](https://robosats.com) P2P exchange.
 
 > ⚠️ **Disclaimer:** This is an unofficial community project, not affiliated with RoboSats.
 
@@ -11,7 +11,7 @@ Get instant WhatsApp notifications when new offers appear on [RoboSats](https://
 
 ## Features
 
-- 🔔 **Real-time notifications** — Get WhatsApp alerts for new offers
+- 🔔 **Real-time notifications** — Get instant alerts for new offers (WhatsApp supported)
 - 🌐 **Multi-coordinator** — Monitor all RoboSats federation coordinators
 - 💱 **Currency filters** — Track only the currencies you care about
 - 🖥️ **Web UI** — Easy configuration and QR code authentication
@@ -23,8 +23,8 @@ Get instant WhatsApp notifications when new offers appear on [RoboSats](https://
 
 1. Install **RoboSats** app on your Umbrel
 2. Add the community app store
-3. Install **RoboSats WhatsApp Notifier**
-4. Open the web UI and scan QR code with WhatsApp
+3. Install **RoboSats Notifier**
+4. Open the web UI and scan QR code
 5. Configure your bot and you're done!
 
 ### Docker
@@ -33,7 +33,7 @@ Get instant WhatsApp notifications when new offers appear on [RoboSats](https://
 docker run -d -p 3000:3000 \
   -v $(pwd)/data:/data \
   -v $(pwd)/.wwebjs_auth:/app/.wwebjs_auth \
-  orangepanther21/robosats-whatsapp-notifier:latest
+  orangepanther21/robosats-notifier:latest
 ```
 
 Open `http://localhost:3000` to configure.
@@ -44,7 +44,7 @@ All settings are available through the web UI at port 3000:
 
 | Setting | Description |
 |---------|-------------|
-| **WhatsApp Group** | Name of the group to receive notifications |
+| **Notification Settings** | Configure where to receive notifications (WhatsApp group/contact) |
 | **Currencies** | Which currencies to monitor (USD, EUR, etc.) |
 | **Coordinators** | Which RoboSats coordinators to check |
 | **Check Interval** | How often to check for new offers (minutes) |
@@ -70,7 +70,7 @@ Each offer is sent as a separate message:
 ## Requirements
 
 - **RoboSats** app installed (provides the API)
-- **WhatsApp** account for notifications
+- **Messaging account** for notifications (WhatsApp currently supported)
 - **Umbrel** node or any Docker-capable system
 
 ## Development
@@ -79,8 +79,8 @@ Each offer is sent as a separate message:
 
 ```bash
 # Clone the repository
-git clone https://github.com/OrangePanther21/robosats-whatsapp-notifier.git
-cd robosats-whatsapp-notifier
+git clone https://github.com/OrangePanther21/robosats-notifier.git
+cd robosats-notifier
 
 # Install dependencies
 npm install
@@ -173,12 +173,12 @@ Contributions are welcome! Here's how you can help:
 ### QR Code Won't Scan
 
 - Delete `.wwebjs_auth/` folder and restart
-- Check if WhatsApp Web is blocked by firewall
+- Check if messaging service is blocked by firewall
 
 ### "Group not found" Error
 
 - Group name must match exactly (case-sensitive)
-- Ensure your WhatsApp account is in the group
+- Ensure your account is in the group
 
 ### No Notifications
 

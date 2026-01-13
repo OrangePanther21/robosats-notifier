@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   # app_proxy service tells Umbrel's nginx reverse proxy where to route traffic
-  # Umbrel uses subdomain routing (e.g., robosats-whatsapp-notifier.umbrel.local)
+  # Umbrel uses subdomain routing (e.g., robosats-notifier.umbrel.local)
   # so there are NO port conflicts - each app gets a unique subdomain
   # The internal port 3000 is only used within Docker's internal network
   app_proxy:
@@ -13,7 +13,7 @@ services:
       APP_PORT: 3000
   
   web:
-    image: ${DOCKER_IMAGE:-robosats-whatsapp-notifier:latest}
+    image: ${DOCKER_IMAGE:-robosats-notifier:latest}
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data
@@ -39,4 +39,4 @@ services:
       LOG_LEVEL: info
     networks:
       default:
-        ipv4_address: $APP_ROBOSATS_WHATSAPP_NOTIFIER_IP
+        ipv4_address: $APP_ROBOSATS_NOTIFIER_IP
