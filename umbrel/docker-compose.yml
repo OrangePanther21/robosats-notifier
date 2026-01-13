@@ -13,10 +13,7 @@ services:
       APP_PORT: 3000
   
   web:
-    image: robosats-whatsapp-notifier:latest
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-robosats-whatsapp-notifier:latest}
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data
@@ -29,8 +26,8 @@ services:
       LANGUAGE: ${LANGUAGE:-EN}
       BOT_ENABLED: ${BOT_ENABLED:-true}
       
-      # RoboSats configuration
-      ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://localhost:12596}
+      # RoboSats configuration - use Docker network name on Umbrel
+      ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://robosats_web_1:12596}
       ROBOSATS_COORDINATORS: ${ROBOSATS_COORDINATORS:-bazaar,moon,lake}
       ROBOSATS_ONION_URL: ${ROBOSATS_ONION_URL:-}
       

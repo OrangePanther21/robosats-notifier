@@ -27,15 +27,14 @@ description: >-
   - Configure your target currencies and group name
   - Adjust check interval and other settings
 developer: Community Contributor
-website: https://github.com
+website: https://github.com/OrangePanther21/robosats-whatsapp-notifier
 dependencies:
   - robosats
 repo: https://github.com/OrangePanther21/robosats-whatsapp-notifier
 support: https://github.com/OrangePanther21/robosats-whatsapp-notifier/issues
 port: 3000
 gallery:
-  - https://example.com/screenshot1.png
-  - https://example.com/screenshot2.png
+  - https://raw.githubusercontent.com/OrangePanther21/robosats-whatsapp-notifier/main/docs/screenshots/screenshot-1.jpg
 path: ""
 defaultUsername: ""
 defaultPassword: ""
