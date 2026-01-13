@@ -1038,6 +1038,16 @@
             const originalText = submitBtn.textContent;
             const nextCheckTimeEl = document.getElementById('next-check-time');
             
+            // Helper to restore UI state on failure/validation error
+            function restoreUIState() {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+                // Restore countdown display if bot is enabled
+                if (botEnabled && nextCheckTimestamp) {
+                    renderCountdown();
+                }
+            }
+            
             // Show loading state
             submitBtn.disabled = true;
             submitBtn.textContent = 'Saving...';
@@ -1056,11 +1066,13 @@
                 
                 if (!countryCode) {
                     showMessage('Please select a country code', 'error', 10000);
+                    restoreUIState();
                     return;
                 }
                 
                 if (!phoneNumber) {
                     showMessage('Please enter a phone number', 'error', 10000);
+                    restoreUIState();
                     return;
                 }
                 
@@ -1068,6 +1080,7 @@
                 const cleanPhone = phoneNumber.replace(/\D/g, '');
                 if (cleanPhone.length < 6 || cleanPhone.length > 15) {
                     showMessage('Phone number must be 6-15 digits', 'error', 10000);
+                    restoreUIState();
                     return;
                 }
                 
@@ -1077,6 +1090,7 @@
                 // Validate group settings
                 if (!settings.WHATSAPP_GROUP_NAME?.trim()) {
                     showMessage('Please enter a WhatsApp group name', 'error', 10000);
+                    restoreUIState();
                     return;
                 }
             }
@@ -1098,6 +1112,8 @@
             const currentConfig = await fetch('/api/settings').then(r => r.json());
             settings.BOT_ENABLED = currentConfig.BOT_ENABLED || 'true';
             
+            let saveSucceeded = false;
+            
             try {
                 const response = await fetch('/api/settings', {
                     method: 'POST',
@@ -1110,6 +1126,7 @@
                 const result = await response.json();
                 
                 if (response.ok) {
+                    saveSucceeded = true;
                     showMessage(result.message, 'success', 5000);
                     
                     // Fetch updated status to get new nextCheckTime after config change
@@ -1159,6 +1176,11 @@
                 // Restore button state
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
+                
+                // Restore countdown if save failed and bot is running
+                if (!saveSucceeded && botEnabled && nextCheckTimestamp) {
+                    renderCountdown();
+                }
             }
         });
 
@@ -1275,15 +1297,14 @@
             
             try {
                 const newState = !botEnabled;
-                const settings = await fetch('/api/settings').then(r => r.json());
-                settings.BOT_ENABLED = newState ? 'true' : 'false';
                 
+                // Only send BOT_ENABLED to avoid overwriting unsaved form changes
                 const response = await fetch('/api/settings', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(settings)
+                    body: JSON.stringify({ BOT_ENABLED: newState ? 'true' : 'false' })
                 });
                 
                 if (response.ok) {
@@ -1291,16 +1312,20 @@
                     
                     // Start/stop countdown timer based on new state
                     if (newState) {
-                        // Bot resumed - wait a moment for backend to set nextCheckTime, then fetch
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                        const statusResponse = await fetch('/api/status');
-                        const status = await statusResponse.json();
-                        if (status.nextCheckTime) {
-                            startCountdownTimer(status.nextCheckTime);
-                        } else {
-                            // Fallback: start without timestamp, will sync shortly
-                            startCountdownTimer();
-                        }
+                        // Bot resumed - show estimated countdown immediately
+                        // Use check interval from form to estimate next check time
+                        const checkIntervalMinutes = parseInt(document.getElementById('check-interval').value) || 5;
+                        const estimatedNextCheck = Date.now() + (checkIntervalMinutes * 60 * 1000);
+                        startCountdownTimer(estimatedNextCheck);
+                        
+                        // Sync with actual backend time after a short delay
+                        setTimeout(async () => {
+                            const statusResponse = await fetch('/api/status');
+                            const status = await statusResponse.json();
+                            if (status.nextCheckTime) {
+                                nextCheckTimestamp = status.nextCheckTime;
+                            }
+                        }, 2000);
                     } else {
                         // Bot paused - stop countdown timer
                         stopCountdownTimer();
