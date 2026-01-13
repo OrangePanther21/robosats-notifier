@@ -2,11 +2,14 @@ const express = require('express');
 const path = require('path');
 const config = require('../config');
 const logger = require('../logger');
+const offerTracker = require('../offerTracker');
 
 class WebServer {
-  constructor(whatsappClient) {
+  constructor(whatsappClient, getNextCheckTimeFn, isCheckRunningFn) {
     this.app = express();
     this.whatsappClient = whatsappClient;
+    this.getNextCheckTime = getNextCheckTimeFn;
+    this.isCheckRunning = isCheckRunningFn;
     this.clients = []; // SSE clients for QR code updates
     this.port = process.env.WEB_PORT || 3000;
 
@@ -80,10 +83,36 @@ class WebServer {
     this.app.get('/api/status', (req, res) => {
       try {
         const status = this.whatsappClient.getStatus();
+        // Add next check time info
+        if (this.getNextCheckTime) {
+          const nextCheckTime = this.getNextCheckTime();
+          if (nextCheckTime) {
+            status.nextCheckTime = nextCheckTime;
+            status.checkIntervalMinutes = config.CHECK_INTERVAL_MS / 60000;
+          }
+        }
+        // Add check-in-progress status
+        if (this.isCheckRunning) {
+          status.isCheckInProgress = this.isCheckRunning();
+        }
         res.json(status);
       } catch (error) {
         logger.error('Error getting status:', error);
         res.status(500).json({ error: 'Failed to get status' });
+      }
+    });
+
+    // Delete offer history
+    this.app.post('/api/delete-history', async (req, res) => {
+      try {
+        await offerTracker.clearAll();
+        res.json({ 
+          success: true,
+          message: 'Offer history deleted successfully!' 
+        });
+      } catch (error) {
+        logger.error('Error deleting offer history:', error);
+        res.status(500).json({ error: 'Failed to delete offer history' });
       }
     });
 

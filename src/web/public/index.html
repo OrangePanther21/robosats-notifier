@@ -22,7 +22,10 @@
                 <div class="status-item">
                     <span class="status-label">Bot Status:</span>
                     <div class="status-with-control">
-                        <span id="bot-status" class="status-value">Checking...</span>
+                        <div class="status-info">
+                            <span id="bot-status" class="status-value">Checking...</span>
+                            <span id="next-check-time" class="next-check-time"></span>
+                        </div>
                         <button type="button" id="bot-toggle-btn" class="icon-btn" title="Pause/Resume Bot">
                             <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="6" y="4" width="4" height="16"></rect>
@@ -157,16 +160,23 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="robosats-onion">RoboSats Onion URL</label>
-                    <input type="url" id="robosats-onion" name="ROBOSATS_ONION_URL" placeholder="http://robosats...onion">
-                    <small>Tor onion address for RoboSats</small>
+                    <label for="robosats-onion">RoboSats Onion URL (Required)</label>
+                    <input type="url" id="robosats-onion" name="ROBOSATS_ONION_URL" value="http://robosatsy56bwqn56qyadmcxkx767hnabg4mihxlmgyt6if5gnuxvzad.onion" required>
+                    <small>Tor onion address for RoboSats (required for fetching offers)</small>
                 </div>
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" disabled>Save Settings</button>
-                    <button type="button" id="refresh-btn" class="btn btn-secondary">Refresh Status</button>
                 </div>
             </form>
+
+            <div style="margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                <button type="button" id="delete-history-btn" class="btn btn-danger" style="width: 100%;">Delete Offer History</button>
+                <small style="display: flex; align-items: center; gap: 6px; margin-top: 12px; color: #6b7280;">
+                    <span style="font-size: 1rem;">ℹ️</span>
+                    Permanently delete all tracked offers. This will reset notification history.
+                </small>
+            </div>
 
             <div id="message" class="message"></div>
         </section>
@@ -842,6 +852,102 @@
             
         }
         
+        // Backend-synced countdown timer
+        let countdownInterval = null;
+        let nextCheckTimestamp = null; // Timestamp (ms) when next check will occur
+        let lastSyncAttempt = 0;
+        const SYNC_INTERVAL = 5000; // Sync every 5 seconds to catch backend cycles
+        
+        // Fetch latest nextCheckTime from backend
+        async function syncNextCheckTime() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                
+                if (status.nextCheckTime) {
+                    nextCheckTimestamp = status.nextCheckTime;
+                    lastSyncAttempt = Date.now();
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error syncing countdown:', error);
+                return false;
+            }
+        }
+        
+        // Update countdown display (pure client-side calculation)
+        async function renderCountdown() {
+            const nextCheckTimeEl = document.getElementById('next-check-time');
+            if (!nextCheckTimeEl) return;
+            
+            // Hide if paused or no timestamp
+            if (!botEnabled || !nextCheckTimestamp) {
+                nextCheckTimeEl.textContent = '';
+                return;
+            }
+            
+            // Calculate seconds remaining
+            const now = Date.now();
+            let secondsRemaining = Math.max(0, Math.ceil((nextCheckTimestamp - now) / 1000));
+            
+            // If countdown hit 0 or near 0, sync with backend to get new cycle time
+            if (secondsRemaining <= 1) {
+                // Only sync if we haven't synced recently (avoid spam)
+                if (now - lastSyncAttempt > 2000) {
+                    console.log('Countdown reached 0, syncing with backend...');
+                    await syncNextCheckTime();
+                    // Recalculate after sync
+                    secondsRemaining = Math.max(0, Math.ceil((nextCheckTimestamp - now) / 1000));
+                }
+            }
+            
+            // Periodic sync to catch backend cycles
+            if (now - lastSyncAttempt > SYNC_INTERVAL) {
+                syncNextCheckTime();
+            }
+            
+            // Format time as MM:SS
+            const minutes = Math.floor(secondsRemaining / 60);
+            const seconds = secondsRemaining % 60;
+            const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            nextCheckTimeEl.textContent = `Next check in ${timeStr}`;
+        }
+        
+        // Start countdown timer - renders every second based on backend timestamp
+        async function startCountdownTimer(initialTimestamp) {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            // Fetch fresh timestamp if not provided
+            if (initialTimestamp) {
+                nextCheckTimestamp = initialTimestamp;
+                lastSyncAttempt = Date.now();
+            } else {
+                await syncNextCheckTime();
+            }
+            
+            // Render immediately
+            await renderCountdown();
+            
+            // Update display every second
+            countdownInterval = setInterval(async () => {
+                await renderCountdown();
+            }, 1000);
+        }
+        
+        // Stop countdown timer
+        function stopCountdownTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            nextCheckTimestamp = null;
+            renderCountdown();
+        }
+        
         // Load bot status
         async function loadStatus() {
             try {
@@ -856,6 +962,11 @@
                     whatsappStatus.className = 'status-value status-running';
                     document.getElementById('qr-section').style.display = 'none';
                     setFormEnabled(true);
+                    
+                    // Start countdown timer if bot is enabled and we have a timestamp
+                    if (botEnabled && status.nextCheckTime) {
+                        startCountdownTimer(status.nextCheckTime);
+                    }
                 } else if (status.qrData) {
                     const botStatus = document.getElementById('bot-status');
                     botStatus.textContent = 'Waiting for Auth';
@@ -866,6 +977,8 @@
                     document.getElementById('qr-code').src = status.qrData;
                     setFormEnabled(false);
                     updateBotStatusDisplay(botEnabled, false);
+                    nextCheckTimestamp = null;
+                    renderCountdown();
                 } else {
                     const botStatus = document.getElementById('bot-status');
                     botStatus.textContent = 'Starting...';
@@ -874,6 +987,8 @@
                     whatsappStatus.className = 'status-value status-waiting';
                     setFormEnabled(false);
                     updateBotStatusDisplay(botEnabled, false);
+                    nextCheckTimestamp = null;
+                    renderCountdown();
                 }
             } catch (error) {
                 console.error('Error loading status:', error);
@@ -918,6 +1033,15 @@
         // Save settings
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            const nextCheckTimeEl = document.getElementById('next-check-time');
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            if (nextCheckTimeEl) nextCheckTimeEl.textContent = ''; // Hide countdown during save
             
             const formData = new FormData(e.target);
             const settings = Object.fromEntries(formData.entries());
@@ -988,6 +1112,15 @@
                 if (response.ok) {
                     showMessage(result.message, 'success', 5000);
                     
+                    // Fetch updated status to get new nextCheckTime after config change
+                    const statusResponse = await fetch('/api/status');
+                    const newStatus = await statusResponse.json();
+                    
+                    // Restart countdown timer with new timestamp
+                    if (botEnabled && newStatus.nextCheckTime) {
+                        startCountdownTimer(newStatus.nextCheckTime);
+                    }
+                    
                     // Clear opposite notification type's fields in the UI after successful save
                     if (notificationType === 'contact') {
                         // Clear group name field
@@ -1022,6 +1155,10 @@
             } catch (error) {
                 console.error('Error saving settings:', error);
                 showMessage('Error saving settings', 'error', 10000);
+            } finally {
+                // Restore button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         });
 
@@ -1134,6 +1271,7 @@
         document.getElementById('bot-toggle-btn').addEventListener('click', async () => {
             const btn = document.getElementById('bot-toggle-btn');
             btn.disabled = true;
+            btn.classList.add('loading');
             
             try {
                 const newState = !botEnabled;
@@ -1150,6 +1288,24 @@
                 
                 if (response.ok) {
                     updateBotStatusDisplay(newState, true);
+                    
+                    // Start/stop countdown timer based on new state
+                    if (newState) {
+                        // Bot resumed - wait a moment for backend to set nextCheckTime, then fetch
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        const statusResponse = await fetch('/api/status');
+                        const status = await statusResponse.json();
+                        if (status.nextCheckTime) {
+                            startCountdownTimer(status.nextCheckTime);
+                        } else {
+                            // Fallback: start without timestamp, will sync shortly
+                            startCountdownTimer();
+                        }
+                    } else {
+                        // Bot paused - stop countdown timer
+                        stopCountdownTimer();
+                    }
+                    
                     showMessage(newState ? 'Bot resumed' : 'Bot paused', 'success', 3000);
                 } else {
                     const result = await response.json();
@@ -1160,16 +1316,50 @@
                 showMessage('Error toggling bot', 'error', 5000);
             } finally {
                 btn.disabled = false;
+                btn.classList.remove('loading');
             }
         });
         
-        // Refresh status button
-        document.getElementById('refresh-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            loadStatus();
+        // Delete offer history button
+        document.getElementById('delete-history-btn').addEventListener('click', async () => {
+            // Confirmation dialog
+            const confirmed = confirm(
+                '⚠️ WARNING: Delete Offer History\n\n' +
+                'This will permanently delete all tracked offers.\n' +
+                'After deletion, ALL offers will be treated as new and may trigger notifications again.\n\n' +
+                'Are you sure you want to continue?'
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            const btn = document.getElementById('delete-history-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            
+            try {
+                const response = await fetch('/api/delete-history', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(result.message || 'Offer history deleted successfully!', 'success', 5000);
+                } else {
+                    showMessage(result.error || 'Failed to delete history', 'error', 5000);
+                }
+            } catch (error) {
+                console.error('Error deleting history:', error);
+                showMessage('Error deleting history', 'error', 5000);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
         });
-
+        
         // Initialize
         loadSettings();
         loadStatus();

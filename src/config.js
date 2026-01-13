@@ -60,6 +60,7 @@ const CURRENCY_MAP = {
 const requiredEnvVars = [
   'ROBOSATS_API_URL',
   'ROBOSATS_COORDINATORS',
+  'ROBOSATS_ONION_URL',
   'TARGET_CURRENCIES'
 ];
 
@@ -407,6 +408,10 @@ function loadConfig() {
       console.error('Error loading config file:', error.message);
       return false;
     }
+  }
+  // First install - set bot to paused by default so user can configure settings
+  if (!process.env.BOT_ENABLED) {
+    process.env.BOT_ENABLED = 'false';
   }
   return false;
 }

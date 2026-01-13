@@ -80,8 +80,15 @@ h2 {
 
 .status-with-control {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
+}
+
+.status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
 }
 
 .status-value {
@@ -90,6 +97,7 @@ h2 {
     font-size: 1.125rem;
     padding: 4px 12px;
     border-radius: 6px;
+    width: fit-content;
 }
 
 .status-running {
@@ -141,8 +149,58 @@ h2 {
     cursor: not-allowed;
 }
 
+.icon-btn.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.icon-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px; /* Center the spinner */
+    border: 2px solid #e5e7eb;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.icon-btn.loading svg {
+    visibility: hidden;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 .icon-btn svg {
     flex-shrink: 0;
+}
+
+/* Next check time indicator */
+.next-check-time {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.next-check-time::before {
+    content: '⏱';
+    font-size: 0.875rem;
+}
+
+.next-check-time:empty {
+    display: none;
+}
+
+.next-check-time:empty::before {
+    content: none;
 }
 
 /* QR Code Section */
@@ -605,17 +663,33 @@ small {
 }
 
 .btn-test {
-    background: #10b981;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 10px 20px;
 }
 
 .btn-test:hover:not(:disabled) {
-    background: #059669;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     transform: translateY(-1px);
 }
 
 .btn-test:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    padding: 10px 20px;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.btn-danger:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }

@@ -101,6 +101,13 @@ class OfferTracker {
     offers.forEach(offer => this.markAsSeen(offer));
     await this.save();
   }
+  
+  async clearAll() {
+    logger.info('Clearing all tracked offers');
+    this.seenOffers.clear();
+    await this.save();
+    logger.info('Offer history cleared successfully');
+  }
 }
 
 module.exports = new OfferTracker();
