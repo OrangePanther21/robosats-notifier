@@ -56,12 +56,11 @@ const CURRENCY_MAP = {
   'SAT': 1000
 };
 
-// Required environment variables (excluding notification-specific ones)
+// Required environment variables (excluding notification-specific ones and TARGET_CURRENCIES which can be set via UI)
 const requiredEnvVars = [
   'ROBOSATS_API_URL',
   'ROBOSATS_COORDINATORS',
-  'ROBOSATS_ONION_URL',
-  'TARGET_CURRENCIES'
+  'ROBOSATS_ONION_URL'
 ];
 
 // Validate required environment variables
@@ -94,34 +93,34 @@ function validateNotificationConfig() {
 // The function will automatically map codes to IDs using CURRENCY_MAP
 function parseTargetCurrencies() {
   const currenciesStr = process.env.TARGET_CURRENCIES;
-  if (!currenciesStr) {
+  if (!currenciesStr || currenciesStr.trim() === '') {
     if (process.env.ROBOSATS_USE_MOCK === 'true') {
       return [{ code: 'USD', id: 1 }];
     }
-    throw new Error('TARGET_CURRENCIES environment variable is required');
+    // Return empty array for first run - user will configure via web UI
+    return [];
   }
 
-  const currencies = currenciesStr.split(',').map(code => {
-    const currencyCode = code.trim().toUpperCase();
-    const currencyId = CURRENCY_MAP[currencyCode];
-    
-    if (!currencyId) {
-      const availableCurrencies = Object.keys(CURRENCY_MAP).join(', ');
-      throw new Error(
-        `Unknown currency code: ${currencyCode}\n` +
-        `Available currencies: ${availableCurrencies}`
-      );
-    }
-    
-    return {
-      code: currencyCode,
-      id: currencyId
-    };
-  });
-
-  if (currencies.length === 0) {
-    throw new Error('At least one target currency must be specified');
-  }
+  const currencies = currenciesStr.split(',')
+    .map(code => code.trim())
+    .filter(code => code !== '') // Filter out empty strings from splitting
+    .map(code => {
+      const currencyCode = code.toUpperCase();
+      const currencyId = CURRENCY_MAP[currencyCode];
+      
+      if (!currencyId) {
+        const availableCurrencies = Object.keys(CURRENCY_MAP).join(', ');
+        throw new Error(
+          `Unknown currency code: ${currencyCode}\n` +
+          `Available currencies: ${availableCurrencies}`
+        );
+      }
+      
+      return {
+        code: currencyCode,
+        id: currencyId
+      };
+    });
 
   return currencies;
 }
@@ -129,8 +128,8 @@ function parseTargetCurrencies() {
 // Parse check interval in minutes
 function parseCheckInterval() {
   const intervalMinutes = parseInt(process.env.CHECK_INTERVAL_MINUTES);
-  if (isNaN(intervalMinutes) || intervalMinutes < 1) {
-    throw new Error('CHECK_INTERVAL_MINUTES must be a positive number');
+  if (isNaN(intervalMinutes) || intervalMinutes < 5) {
+    throw new Error('CHECK_INTERVAL_MINUTES must be at least 5 minutes');
   }
   return intervalMinutes * 60 * 1000; // Convert to milliseconds
 }

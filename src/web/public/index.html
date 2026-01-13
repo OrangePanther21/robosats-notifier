@@ -85,6 +85,7 @@
                         <button type="button" id="test-message-btn" class="btn btn-test">Test</button>
                     </div>
                     <small>The exact name of your WhatsApp group</small>
+                    <small class="error-message" id="group-name-error"></small>
                 </div>
 
                 <div class="form-group" id="contact-fields" style="display: none;">
@@ -109,12 +110,13 @@
                     </div>
                     <input type="hidden" id="contact-country-code" name="CONTACT_COUNTRY_CODE">
                     <small>Enter phone number without country code (digits only, 6-15 characters)</small>
+                    <small class="error-message" id="contact-error"></small>
                 </div>
 
                 <div class="form-group">
                     <label for="check-interval">Check Interval (minutes)</label>
-                    <input type="number" id="check-interval" name="CHECK_INTERVAL_MINUTES" min="1" value="5" required>
-                    <small>How often to check for new offers</small>
+                    <input type="number" id="check-interval" name="CHECK_INTERVAL_MINUTES" min="5" value="5" required>
+                    <small>How often to check for new offers (minimum 5 minutes)</small>
                 </div>
 
                 <div class="form-group">
@@ -201,9 +203,16 @@
                 // Support both simple arrays and {id, name} objects
                 this.options = options;
                 this.isObjectOptions = options.length > 0 && typeof options[0] === 'object';
-                this.selectedValues = new Set(selectedValues);
                 this.filteredOptions = [...options];
                 this.singleSelect = singleSelect;
+                
+                // Handle special "all" value - if selectedValues contains "all", select all options
+                if (selectedValues.includes('all') && !singleSelect) {
+                    const allOptionIds = this.options.map(opt => this.isObjectOptions ? opt.id : opt);
+                    this.selectedValues = new Set(allOptionIds);
+                } else {
+                    this.selectedValues = new Set(selectedValues);
+                }
                 
                 this.trigger = this.container.querySelector('.multiselect-trigger');
                 this.dropdown = this.container.querySelector('.multiselect-dropdown');
@@ -621,6 +630,91 @@
             }
         }
         
+        // Error state management for inputs
+        function showInputError(inputElement, errorMessage) {
+            if (!inputElement) return;
+            
+            // Add error class to input
+            inputElement.classList.add('input-error');
+            
+            // Find the form group and add error class
+            const formGroup = inputElement.closest('.form-group');
+            if (formGroup) {
+                formGroup.classList.add('has-error');
+                
+                // Find and show error message
+                const errorEl = formGroup.querySelector('.error-message');
+                if (errorEl && errorMessage) {
+                    errorEl.textContent = errorMessage;
+                    errorEl.classList.add('visible');
+                }
+            }
+        }
+        
+        function clearInputError(inputElement) {
+            if (!inputElement) return;
+            
+            // Remove error class from input
+            inputElement.classList.remove('input-error');
+            
+            // Find the form group and remove error class
+            const formGroup = inputElement.closest('.form-group');
+            if (formGroup) {
+                formGroup.classList.remove('has-error');
+                
+                // Hide error message
+                const errorEl = formGroup.querySelector('.error-message');
+                if (errorEl) {
+                    errorEl.textContent = '';
+                    errorEl.classList.remove('visible');
+                }
+            }
+        }
+        
+        function showCountrySelectorError(errorMessage) {
+            const countrySelector = document.getElementById('country-selector');
+            if (countrySelector) {
+                countrySelector.classList.add('input-error');
+            }
+            
+            const formGroup = document.getElementById('contact-fields');
+            if (formGroup) {
+                formGroup.classList.add('has-error');
+                
+                const errorEl = document.getElementById('contact-error');
+                if (errorEl && errorMessage) {
+                    errorEl.textContent = errorMessage;
+                    errorEl.classList.add('visible');
+                }
+            }
+        }
+        
+        function clearCountrySelectorError() {
+            const countrySelector = document.getElementById('country-selector');
+            if (countrySelector) {
+                countrySelector.classList.remove('input-error');
+            }
+        }
+        
+        function clearContactFieldsError() {
+            clearCountrySelectorError();
+            const phoneInput = document.getElementById('contact-phone');
+            if (phoneInput) {
+                phoneInput.classList.remove('input-error');
+            }
+            
+            const formGroup = document.getElementById('contact-fields');
+            if (formGroup) {
+                formGroup.classList.remove('has-error');
+                
+                const errorEl = document.getElementById('contact-error');
+                if (errorEl) {
+                    errorEl.textContent = '';
+                    errorEl.classList.remove('visible');
+                }
+            }
+        }
+        
         // Validate all required form fields
         function validateAllFormFields() {
             const notificationType = document.querySelector('input[name="NOTIFICATION_TYPE"]:checked')?.value || 'group';
@@ -641,7 +735,7 @@
             
             // Check interval
             const interval = document.getElementById('check-interval')?.value;
-            if (!interval || parseInt(interval) < 1) {
+            if (!interval || parseInt(interval) < 5) {
                 return false;
             }
             
@@ -942,8 +1036,9 @@
                     document.getElementById('contact-country-code').value = countrySelector.getSelected() || '';
                     updateSaveButtonState();
                     updateTestButtonStates();
-                    // Clear success state when country changes
+                    // Clear success and error states when country changes
                     clearCountrySelectorSuccess();
+                    clearContactFieldsError();
                 };
                 // Don't set contact-country-code - keep it empty
                 
@@ -986,8 +1081,9 @@
                     e.target.value = e.target.value.replace(/[^\d\s\-()]/g, '');
                     updateSaveButtonState();
                     updateTestButtonStates();
-                    // Clear success state when value changes
+                    // Clear success and error states when value changes
                     clearInputSuccess(e.target);
+                    clearContactFieldsError();
                 });
                 
                 // Add group name input listener for test button validation
@@ -995,8 +1091,9 @@
                 if (groupNameInput) {
                     groupNameInput.addEventListener('input', (e) => {
                         updateTestButtonStates();
-                        // Clear success state when value changes
+                        // Clear success and error states when value changes
                         clearInputSuccess(e.target);
+                        clearInputError(e.target);
                     });
                 }
                 
@@ -1017,8 +1114,8 @@
         // Enable/disable form based on WhatsApp connection status
         function setFormEnabled(enabled) {
             const form = document.getElementById('settings-form');
-            // Exclude notification type radio buttons - they should always be enabled
-            const inputs = form.querySelectorAll('input:not([type="checkbox"]):not([name="NOTIFICATION_TYPE"]), select, .multiselect-trigger');
+            // Include all inputs, even notification type radio buttons
+            const inputs = form.querySelectorAll('input:not([type="checkbox"]), select, .multiselect-trigger');
             const submitBtn = form.querySelector('button[type="submit"]');
             const testBtn = document.getElementById('test-message-btn');
             const warning = document.getElementById('connection-warning');
@@ -1052,6 +1149,18 @@
                 }
             });
             
+            // Handle country selector
+            const countrySelector = document.getElementById('country-selector');
+            if (countrySelector) {
+                if (enabled) {
+                    countrySelector.style.pointerEvents = '';
+                    countrySelector.style.opacity = '1';
+                } else {
+                    countrySelector.style.pointerEvents = 'none';
+                    countrySelector.style.opacity = '0.5';
+                }
+            }
+            
             // Don't modify submit button here - it's controlled by form change detection
             // Only disable it when form is disabled, but let change detection enable it
             if (submitBtn && !enabled) {
@@ -1061,8 +1170,14 @@
                 updateSaveButtonState();
             }
             
+            // Disable both test buttons when form is disabled
             if (testBtn) {
                 testBtn.disabled = !enabled;
+            }
+            
+            const testContactBtn = document.getElementById('test-contact-btn');
+            if (testContactBtn) {
+                testContactBtn.disabled = !enabled;
             }
             
         }
@@ -1428,8 +1543,11 @@
             const groupNameInput = document.getElementById('whatsapp-group');
             const groupName = groupNameInput.value.trim();
             
+            // Clear any previous errors
+            clearInputError(groupNameInput);
+            
             if (!groupName) {
-                showMessage('Please enter a group name first', 'error', 10000);
+                showInputError(groupNameInput, 'Please enter a group name');
                 return;
             }
             
@@ -1461,13 +1579,17 @@
                     btn.textContent = originalText;
                     updateTestButtonStates();
                 } else {
-                    showMessage(result.error || 'Failed to send test message', 'error', 10000);
+                    const errorMsg = result.error || 'Failed to send test message';
+                    showMessage(errorMsg, 'error', 10000);
+                    showInputError(groupNameInput, errorMsg);
                     btn.disabled = false;
                     btn.textContent = originalText;
                 }
             } catch (error) {
                 console.error('Error sending test message:', error);
-                showMessage('Error sending test message', 'error', 10000);
+                const errorMsg = 'Error sending test message';
+                showMessage(errorMsg, 'error', 10000);
+                showInputError(groupNameInput, errorMsg);
                 btn.disabled = false;
                 btn.textContent = originalText;
             }
@@ -1482,21 +1604,25 @@
             const originalText = btn.textContent;
             const countryCode = countrySelector.getSelected();
             const phoneNumber = document.getElementById('contact-phone').value.trim();
+            const phoneInput = document.getElementById('contact-phone');
+            
+            // Clear any previous errors
+            clearContactFieldsError();
             
             if (!countryCode) {
-                showMessage('Please select a country code first', 'error', 10000);
+                showCountrySelectorError('Please select a country code');
                 return;
             }
             
             if (!phoneNumber) {
-                showMessage('Please enter a phone number', 'error', 10000);
+                showInputError(phoneInput, 'Please enter a phone number');
                 return;
             }
             
             // Validate phone number
             const cleanPhone = phoneNumber.replace(/\D/g, '');
             if (cleanPhone.length < 6 || cleanPhone.length > 15) {
-                showMessage('Phone number must be 6-15 digits', 'error', 10000);
+                showInputError(phoneInput, 'Phone number must be 6-15 digits');
                 return;
             }
             
@@ -1522,7 +1648,6 @@
                     showMessage(result.message, 'success', 5000);
                     
                     // Show success feedback on country selector and phone input
-                    const phoneInput = document.getElementById('contact-phone');
                     showCountrySelectorSuccess();
                     showInputSuccess(phoneInput);
                     
@@ -1531,13 +1656,19 @@
                     btn.textContent = originalText;
                     updateTestButtonStates();
                 } else {
-                    showMessage(result.error || 'Failed to send test message', 'error', 10000);
+                    const errorMsg = result.error || 'Failed to send test message';
+                    showMessage(errorMsg, 'error', 10000);
+                    showCountrySelectorError(errorMsg);
+                    showInputError(phoneInput, errorMsg);
                     btn.disabled = false;
                     btn.textContent = originalText;
                 }
             } catch (error) {
                 console.error('Error sending test message:', error);
-                showMessage('Error sending test message', 'error', 10000);
+                const errorMsg = 'Error sending test message';
+                showMessage(errorMsg, 'error', 10000);
+                showCountrySelectorError(errorMsg);
+                showInputError(phoneInput, errorMsg);
                 btn.disabled = false;
                 btn.textContent = originalText;
             }

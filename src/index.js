@@ -55,6 +55,12 @@ async function checkForNewOffersInternal() {
       return;
     }
     
+    // Validate currencies are configured
+    if (!config.TARGET_CURRENCIES || config.TARGET_CURRENCIES.length === 0) {
+      logger.error('No target currencies configured. Please configure currencies via the web UI.');
+      return;
+    }
+    
     // Clean up expired offers
     await offerTracker.cleanupExpiredOffers();
     

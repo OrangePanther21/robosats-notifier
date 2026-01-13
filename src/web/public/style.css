@@ -325,6 +325,36 @@ input.input-success {
     display: block;
 }
 
+/* Input Error State */
+input.input-error {
+    border-color: #ef4444 !important;
+    border-width: 2px;
+}
+
+/* Country selector error state */
+.country-selector.input-error .country-selector-trigger {
+    border-color: #ef4444 !important;
+    border-width: 2px;
+}
+
+/* Error message styling */
+.error-message {
+    display: none;
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.error-message.visible {
+    display: block;
+}
+
+/* Hide regular hint when error is shown */
+.form-group.has-error small:not(.error-message) {
+    display: none;
+}
+
 /* Radio Group */
 .radio-group {
     display: flex;

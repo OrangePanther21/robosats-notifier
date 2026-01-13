@@ -22,7 +22,7 @@ services:
       # Default configuration - can be changed via web UI
       WHATSAPP_GROUP_NAME: ${WHATSAPP_GROUP_NAME:-}
       CHECK_INTERVAL_MINUTES: ${CHECK_INTERVAL_MINUTES:-5}
-      TARGET_CURRENCIES: ${TARGET_CURRENCIES:-USD,EUR}
+      TARGET_CURRENCIES: ${TARGET_CURRENCIES:-}
       LANGUAGE: ${LANGUAGE:-EN}
       BOT_ENABLED: ${BOT_ENABLED:-true}
       
