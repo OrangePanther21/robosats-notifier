@@ -60,7 +60,6 @@ const CURRENCY_MAP = {
 const requiredEnvVars = [
   'ROBOSATS_API_URL',
   'ROBOSATS_COORDINATORS',
-  'ROBOSATS_ONION_URL',
   'TARGET_CURRENCIES'
 ];
 
