@@ -138,11 +138,7 @@
                     <input type="hidden" id="language" name="LANGUAGE" required>
                 </div>
 
-                <div class="form-group">
-                    <label for="robosats-api">RoboSats API URL</label>
-                    <input type="url" id="robosats-api" name="ROBOSATS_API_URL" placeholder="http://robosats:12596">
-                    <small>Internal Docker URL for RoboSats API</small>
-                </div>
+                <!-- RoboSats API URL is auto-configured by Umbrel, no user input needed -->
 
                 <div class="form-group">
                     <label for="robosats-coordinators">RoboSats Coordinators</label>
@@ -614,7 +610,6 @@
             'CHECK_INTERVAL_MINUTES', 
             'TARGET_CURRENCIES',
             'LANGUAGE',
-            'ROBOSATS_API_URL',
             'ROBOSATS_COORDINATORS',
             'ROBOSATS_ONION_URL'
         ];

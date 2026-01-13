@@ -10,27 +10,52 @@ if (config.ROBOSATS_USE_MOCK) {
 } else {
   module.exports = new (class RobosatsClient {
   constructor() {
-    this.apiUrl = config.ROBOSATS_API_URL;
-    
-    // Determine which coordinators to check
+    // Log initial configuration
+    this.logConfig();
+  }
+  
+  // Get current API URL (reads from config each time for hot-reload support)
+  get apiUrl() {
+    return config.ROBOSATS_API_URL;
+  }
+  
+  // Get current coordinators (reads from config each time for hot-reload support)
+  get coordinators() {
     if (config.ROBOSATS_COORDINATORS === 'all') {
-      this.coordinators = config.AVAILABLE_COORDINATORS;
-    } else {
-      // Parse comma-separated list
-      this.coordinators = config.ROBOSATS_COORDINATORS.split(',').map(c => c.trim()).filter(c => c);
+      return config.AVAILABLE_COORDINATORS;
+    }
+    return config.ROBOSATS_COORDINATORS.split(',').map(c => c.trim()).filter(c => c);
+  }
+  
+  // Create axios instance with current config
+  getAxiosInstance() {
+    // Parse the API URL to get the port
+    let port = '12596';
+    try {
+      const url = new URL(this.apiUrl);
+      port = url.port || '12596';
+    } catch (e) {
+      // Keep default
     }
     
-    // Configure axios
-    const axiosConfig = {
+    // Always use umbrel.local as Host header - Django requires this
+    // even when connecting via internal Docker hostnames
+    const hostHeader = `umbrel.local:${port}`;
+    
+    return axios.create({
       baseURL: this.apiUrl,
       timeout: 30000,
-      headers: { 'User-Agent': 'RobosatsBot/1.0' }
-    };
-
-    this.axiosInstance = axios.create(axiosConfig);
-    
-    // Log configuration
+      headers: { 
+        'User-Agent': 'RobosatsBot/1.0',
+        'Accept': 'application/json',
+        'Host': hostHeader
+      }
+    });
+  }
+  
+  logConfig() {
     const currencyCodes = config.TARGET_CURRENCIES.map(c => c.code).join(', ');
+    logger.info(`RoboSats API URL: ${this.apiUrl}`);
     logger.info(`Monitoring ${this.coordinators.length} coordinator(s): ${this.coordinators.join(', ')}`);
     logger.info(`Target currencies: ${currencyCodes}`);
   }
@@ -42,7 +67,8 @@ if (config.ROBOSATS_USE_MOCK) {
       if (currency) params.currency = currency;
       if (type !== null) params.type = type;
       
-      const response = await this.axiosInstance.get(`${apiBasePath}/book/`, { params });
+      const axiosInstance = this.getAxiosInstance();
+      const response = await axiosInstance.get(`${apiBasePath}/book/`, { params });
       
       // Ensure we always return an array
       if (!Array.isArray(response.data)) {
@@ -58,8 +84,13 @@ if (config.ROBOSATS_USE_MOCK) {
     } catch (error) {
       // Log detailed error information
       if (error.response) {
-        // HTTP error response
+        // HTTP error response - include response body for debugging
+        const responseBody = typeof error.response.data === 'string' 
+          ? error.response.data.substring(0, 200)
+          : JSON.stringify(error.response.data).substring(0, 200);
         logger.error(`Error fetching order book from ${coordinator}: HTTP ${error.response.status} ${error.response.statusText}`);
+        logger.error(`Response body: ${responseBody}`);
+        logger.error(`Request URL: ${this.apiUrl}/mainnet/${coordinator}/api/book/`);
       } else if (error.request) {
         // Request made but no response received
         logger.error(`Error fetching order book from ${coordinator}: No response received (timeout or network error)`);
@@ -132,10 +163,11 @@ if (config.ROBOSATS_USE_MOCK) {
 
   async getInfo() {
     // Get info from first available coordinator
+    const axiosInstance = this.getAxiosInstance();
     for (const coordinator of this.coordinators) {
       try {
         const apiBasePath = `/mainnet/${coordinator}/api`;
-        const response = await this.axiosInstance.get(`${apiBasePath}/info/`);
+        const response = await axiosInstance.get(`${apiBasePath}/info/`);
         return response.data;
       } catch (error) {
         logger.warn(`Failed to get info from ${coordinator}, trying next...`);
