@@ -5,6 +5,15 @@ All notable changes to RoboSats Notifier will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-22
+
+### Changed
+- Refactored `getOrderBookFromCoordinator` and `getOrderBook` methods with `Promise.allSettled` for improved parallel request handling
+- Enhanced logging of coordinator responses and errors for better debugging
+- Offer tracking now includes coordinator information for better management of inactive offers
+- Improved logic for deleting offers based on their status and coordinator reachability
+- `RobosatsClient` now returns reachable coordinators alongside offers for improved tracking
+
 ## [1.1.0] - 2026-01-22
 
 ### Added
