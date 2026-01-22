@@ -30,17 +30,17 @@ Get instant notifications when new offers appear on [RoboSats](https://robosats.
 ### Docker
 
 ```bash
-docker run -d -p 3000:3000 \
+docker run -d -p 12597:12597 \
   -v $(pwd)/data:/data \
   -v $(pwd)/.wwebjs_auth:/app/.wwebjs_auth \
   orangepanther21/robosats-notifier:latest
 ```
 
-Open `http://localhost:3000` to configure.
+Open `http://localhost:12597` to configure.
 
 ## Configuration
 
-All settings are available through the web UI at port 3000:
+All settings are available through the web UI at port 12597:
 
 | Setting | Description |
 |---------|-------------|
@@ -95,11 +95,12 @@ npm run dev
 
 ### Configuration Methods
 
-**Recommended:** Use the web UI at `http://localhost:3000` for easy configuration.
+**Recommended:** Use the web UI at `http://localhost:12597` for easy configuration.
 
 **Advanced:** For Docker deployments or headless setups, you can use environment variables:
 
 ```env
+WEB_PORT=12597
 WHATSAPP_GROUP_NAME=Your Group Name
 ROBOSATS_API_URL=http://localhost:12596
 ROBOSATS_ONION_URL=http://robosatsy56bwqn56qyadmcxkx767hnabg4mihxlmgyt6if5gnuxvzad.onion
