@@ -73,7 +73,7 @@ async function checkForNewOffersInternal() {
     const currencyCodes = config.TARGET_CURRENCIES.map(c => c.code).join(', ');
     logger.info(`Checking for new offers (${currencyCodes})...`);
     
-    const allOffers = await robosatsClient.getOffers();
+    const { offers: allOffers, reachableCoordinators } = await robosatsClient.getOffers();
     
     // Check for abort signal after fetching (longest operation)
     if (shouldAbortCheck) {
@@ -88,20 +88,53 @@ async function checkForNewOffersInternal() {
       
       for (const trackedId of trackedIds) {
         if (!currentIds.has(trackedId)) {
-          // Offer is no longer in the current list (taken, cancelled, or expired)
-          const messageId = offerTracker.getMessageId(trackedId);
-          if (messageId) {
-            try {
-              const deleted = await whatsappClient.deleteMessage(messageId);
-              if (deleted) {
-                logger.info(`Deleted message for inactive offer #${trackedId}`);
-              }
-            } catch (error) {
-              logger.warn(`Failed to delete message for offer #${trackedId}: ${error.message}`);
+          // Offer is no longer in the current list - but we need to verify it's truly gone
+          const offerInfo = offerTracker.getOfferInfo(trackedId);
+          
+          // Determine if we should delete this offer
+          let shouldDelete = false;
+          let deleteReason = '';
+          
+          if (offerInfo && offerInfo.expiresAt && offerInfo.expiresAt <= Date.now()) {
+            // Case 1: Offer has naturally expired based on its expiration time
+            shouldDelete = true;
+            deleteReason = 'expired';
+          } else if (offerInfo && offerInfo.coordinator && reachableCoordinators.has(offerInfo.coordinator)) {
+            // Case 2: The offer's coordinator was successfully reached but offer is not in the list
+            // This means the offer was actually taken, cancelled, or removed
+            shouldDelete = true;
+            deleteReason = 'confirmed inactive';
+          } else if (!offerInfo || !offerInfo.coordinator) {
+            // Case 3: No coordinator info (legacy data) - check if offer is expired
+            // For legacy data without coordinator, only delete if expired
+            if (offerInfo && offerInfo.expiresAt && offerInfo.expiresAt <= Date.now()) {
+              shouldDelete = true;
+              deleteReason = 'expired (legacy)';
+            } else {
+              // Don't delete - we can't verify the coordinator status
+              const coordinatorStatus = offerInfo?.coordinator ? 'unreachable' : 'unknown';
+              logger.debug(`Preserving offer #${trackedId}: coordinator ${coordinatorStatus}, not yet expired`);
             }
+          } else {
+            // Case 4: Coordinator is unreachable - preserve the offer
+            logger.debug(`Preserving offer #${trackedId}: coordinator ${offerInfo.coordinator} unreachable`);
           }
-          // Remove from tracker regardless of deletion success
-          await offerTracker.removeOffer(trackedId);
+          
+          if (shouldDelete) {
+            const messageId = offerTracker.getMessageId(trackedId);
+            if (messageId) {
+              try {
+                const deleted = await whatsappClient.deleteMessage(messageId);
+                if (deleted) {
+                  logger.info(`Deleted message for ${deleteReason} offer #${trackedId}`);
+                }
+              } catch (error) {
+                logger.warn(`Failed to delete message for offer #${trackedId}: ${error.message}`);
+              }
+            }
+            // Remove from tracker
+            await offerTracker.removeOffer(trackedId);
+          }
         }
       }
     }

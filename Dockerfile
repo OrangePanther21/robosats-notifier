@@ -47,7 +47,7 @@ COPY src/ ./src/
 RUN mkdir -p /data
 
 # Expose web UI port
-EXPOSE 3000
+EXPOSE 12597
 
 # Start the application
 CMD ["node", "src/index.js"]

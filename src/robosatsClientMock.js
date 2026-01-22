@@ -122,12 +122,14 @@ class RobosatsClientMock {
     const currencyCodes = config.TARGET_CURRENCIES.map(c => c.code).join(', ');
     logger.info(`[MOCK] Found ${offers.length} public offers (${currencyCodes})`);
     
-    return offers;
+    // Return same format as real client: { offers, reachableCoordinators }
+    const reachableCoordinators = new Set(['mock']);
+    return { offers, reachableCoordinators };
   }
 
   // Method to simulate new offers appearing
   async getOffersWithNew() {
-    const baseOffers = await this.getOffers();
+    const { offers: baseOffers, reachableCoordinators } = await this.getOffers();
     
     // Occasionally add a "new" offer for testing notifications
     if (Math.random() > 0.7) {
@@ -153,10 +155,10 @@ class RobosatsClientMock {
       };
       
       logger.info('[MOCK] Simulating new offer appearing');
-      return [...baseOffers, newOffer];
+      return { offers: [...baseOffers, newOffer], reachableCoordinators };
     }
     
-    return baseOffers;
+    return { offers: baseOffers, reachableCoordinators };
   }
 }
 

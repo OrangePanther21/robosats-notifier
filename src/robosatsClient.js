@@ -105,6 +105,7 @@ if (config.ROBOSATS_USE_MOCK) {
   async getOrderBook(currency = null, type = null) {
     // Check all coordinators and aggregate results
     const allOffers = [];
+    const reachableCoordinators = new Set();
     
     for (const coordinator of this.coordinators) {
       try {
@@ -115,6 +116,9 @@ if (config.ROBOSATS_USE_MOCK) {
           logger.warn(`Skipping ${coordinator} coordinator: API returned non-array response (${typeof offers})`);
           continue;
         }
+        
+        // Mark this coordinator as successfully reached
+        reachableCoordinators.add(coordinator);
         
         // Add coordinator info to each offer for tracking
         const offersWithCoordinator = offers.map(offer => ({
@@ -132,11 +136,11 @@ if (config.ROBOSATS_USE_MOCK) {
       }
     }
     
-    return allOffers;
+    return { offers: allOffers, reachableCoordinators };
   }
 
   async getOffers() {
-    const orderBook = await this.getOrderBook();
+    const { offers: orderBook, reachableCoordinators } = await this.getOrderBook();
     
     // Get target currency IDs
     const targetCurrencyIds = config.TARGET_CURRENCIES.map(c => c.id);
@@ -156,9 +160,11 @@ if (config.ROBOSATS_USE_MOCK) {
     });
 
     const currencyCodes = config.TARGET_CURRENCIES.map(c => c.code).join(', ');
-    logger.info(`Found ${offers.length} offers (${currencyCodes}) across ${this.coordinators.length} coordinator(s) out of ${orderBook.length} total offers`);
+    const reachableCount = reachableCoordinators.size;
+    const totalCoordinators = this.coordinators.length;
+    logger.info(`Found ${offers.length} offers (${currencyCodes}) from ${reachableCount}/${totalCoordinators} reachable coordinator(s) out of ${orderBook.length} total offers`);
     
-    return offers;
+    return { offers, reachableCoordinators };
   }
 
   async getInfo() {

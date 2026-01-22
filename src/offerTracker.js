@@ -25,7 +25,8 @@ class OfferTracker {
           this.seenOffers.set(offerId, {
             expiresAt: expirationTime,
             messageId: null,
-            sentAt: null
+            sentAt: null,
+            coordinator: null
           });
         });
         await this.save(); // Save in new format
@@ -37,14 +38,16 @@ class OfferTracker {
             this.seenOffers.set(parseInt(offerId), {
               expiresAt: value,
               messageId: null,
-              sentAt: null
+              sentAt: null,
+              coordinator: null
             });
           } else if (typeof value === 'object' && value !== null) {
-            // New format: object with expiresAt, messageId, sentAt
+            // New format: object with expiresAt, messageId, sentAt, coordinator
             this.seenOffers.set(parseInt(offerId), {
               expiresAt: value.expiresAt,
               messageId: value.messageId || null,
-              sentAt: value.sentAt || null
+              sentAt: value.sentAt || null,
+              coordinator: value.coordinator || null
             });
           }
         });
@@ -86,8 +89,7 @@ class OfferTracker {
     let removedCount = 0;
     
     for (const [offerId, value] of this.seenOffers.entries()) {
-      const expiresAt = typeof value === 'number' ? value : value.expiresAt;
-      if (expiresAt <= now) {
+      if (value.expiresAt <= now) {
         this.seenOffers.delete(offerId);
         removedCount++;
       }
@@ -121,7 +123,8 @@ class OfferTracker {
     this.seenOffers.set(offer.id, {
       expiresAt: expiresAt,
       messageId: messageId,
-      sentAt: Date.now()
+      sentAt: Date.now(),
+      coordinator: offer.coordinator || null
     });
   }
 
@@ -153,7 +156,24 @@ class OfferTracker {
   getMessageId(offerId) {
     const value = this.seenOffers.get(offerId);
     if (!value) return null;
-    return typeof value === 'object' ? value.messageId : null;
+    return value.messageId;
+  }
+
+  getOfferInfo(offerId) {
+    const value = this.seenOffers.get(offerId);
+    if (!value) return null;
+    return {
+      expiresAt: value.expiresAt,
+      messageId: value.messageId,
+      sentAt: value.sentAt,
+      coordinator: value.coordinator
+    };
+  }
+
+  isExpired(offerId) {
+    const info = this.getOfferInfo(offerId);
+    if (!info) return false;
+    return info.expiresAt <= Date.now();
   }
 
   async removeOffer(offerId) {
