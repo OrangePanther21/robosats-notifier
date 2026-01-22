@@ -10,10 +10,10 @@ services:
       # Service name - Umbrel will resolve this within the Docker network
       APP_HOST: web
       # Internal port the app listens on (within Docker network only)
-      APP_PORT: 3000
+      APP_PORT: 12597
   
   web:
-    image: ${DOCKER_IMAGE:-robosats-notifier:latest}
+    image: orangepanther21/robosats-notifier:1.1.0
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data
@@ -35,7 +35,7 @@ services:
       CONFIG_FILE: /data/config.json
       
       # Web UI port and logging
-      WEB_PORT: 3000
+      WEB_PORT: 12597
       LOG_LEVEL: info
     networks:
       default:
