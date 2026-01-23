@@ -61,9 +61,6 @@ async function checkForNewOffersInternal() {
       return;
     }
     
-    // Clean up expired offers
-    await offerTracker.cleanupExpiredOffers();
-    
     // Check for abort signal
     if (shouldAbortCheck) {
       logger.info('Check aborted by user');
