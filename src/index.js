@@ -119,18 +119,32 @@ async function checkForNewOffersInternal() {
           
           if (shouldDelete) {
             const messageId = offerTracker.getMessageId(trackedId);
+            let messageDeleted = true; // Assume success if no message to delete
+            
             if (messageId) {
               try {
                 const deleted = await whatsappClient.deleteMessage(messageId);
                 if (deleted) {
                   logger.info(`Deleted message for ${deleteReason} offer #${trackedId}`);
+                  messageDeleted = true;
+                } else {
+                  // Deletion verification failed - message may still be visible
+                  logger.warn(`Message deletion verification failed for offer #${trackedId} - message may still be visible in chat`);
+                  messageDeleted = false;
                 }
               } catch (error) {
                 logger.warn(`Failed to delete message for offer #${trackedId}: ${error.message}`);
+                messageDeleted = false;
               }
             }
-            // Remove from tracker
-            await offerTracker.removeOffer(trackedId);
+            
+            // Only remove from tracker if message was successfully deleted (or no message existed)
+            // This allows retry on next cycle if deletion failed
+            if (messageDeleted) {
+              await offerTracker.removeOffer(trackedId);
+            } else {
+              logger.info(`Keeping offer #${trackedId} in tracker for deletion retry`);
+            }
           }
         }
       }

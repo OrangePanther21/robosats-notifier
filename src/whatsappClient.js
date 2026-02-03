@@ -113,6 +113,20 @@ class WhatsAppClient extends EventEmitter {
     }
 
     const sentMessage = await this.client.sendMessage(group.id._serialized, message, { linkPreview: false });
+    
+    // Verify message was sent successfully
+    if (!sentMessage || !sentMessage.id || !sentMessage.id._serialized) {
+      throw new Error('Message send returned without valid message ID');
+    }
+    
+    // Verify message exists by fetching it
+    const messageId = sentMessage.id._serialized;
+    const verifyMessage = await this.client.getMessageById(messageId);
+    if (!verifyMessage) {
+      logger.warn(`Message ${messageId} could not be verified after send`);
+      throw new Error('Message could not be verified after send');
+    }
+    
     logger.info('Message sent to WhatsApp group');
     return sentMessage;
   }
@@ -130,6 +144,20 @@ class WhatsAppClient extends EventEmitter {
 
     try {
       const sentMessage = await this.client.sendMessage(chatId, message, { linkPreview: false });
+      
+      // Verify message was sent successfully
+      if (!sentMessage || !sentMessage.id || !sentMessage.id._serialized) {
+        throw new Error('Message send returned without valid message ID');
+      }
+      
+      // Verify message exists by fetching it
+      const messageId = sentMessage.id._serialized;
+      const verifyMessage = await this.client.getMessageById(messageId);
+      if (!verifyMessage) {
+        logger.warn(`Message ${messageId} could not be verified after send`);
+        throw new Error('Message could not be verified after send');
+      }
+      
       logger.info(`Message sent to WhatsApp contact: ${chatId}`);
       return sentMessage;
     } catch (error) {
@@ -164,11 +192,41 @@ class WhatsAppClient extends EventEmitter {
     try {
       const message = await this.client.getMessageById(messageId);
       if (message) {
+        // Log message state before deletion for debugging
+        logger.debug(`Attempting to delete message ${messageId} (type: ${message.type}, fromMe: ${message.fromMe})`);
+        
         await message.delete(true); // true = delete for everyone
-        logger.info(`Deleted message ${messageId}`);
-        return true;
+        
+        // Verify deletion was successful
+        // Wait for the deletion to propagate through WhatsApp
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Try to fetch the message again to verify deletion
+        const verifyMessage = await this.client.getMessageById(messageId);
+        
+        if (!verifyMessage) {
+          // Message no longer exists - successfully deleted
+          logger.info(`Deleted message ${messageId}`);
+          return true;
+        }
+        
+        // Check if message body indicates deletion
+        // WhatsApp marks deleted messages with empty body or specific type
+        const body = verifyMessage.body || '';
+        const msgType = verifyMessage.type;
+        
+        // Messages deleted for everyone typically become type 'revoked' or have empty body
+        if (msgType === 'revoked' || body === '') {
+          logger.info(`Deleted message ${messageId} (verified as revoked)`);
+          return true;
+        }
+        
+        // Message still exists with content - deletion may have failed
+        // Possible causes: rate limiting, network issues, cached data, or WhatsApp Web session state
+        logger.warn(`Message ${messageId} deletion verification failed - message still exists (type: ${msgType}, bodyLength: ${body.length})`);
+        return false;
       }
-      logger.warn(`Message ${messageId} not found`);
+      logger.warn(`Message ${messageId} not found for deletion`);
       return false;
     } catch (error) {
       logger.warn(`Failed to delete message ${messageId}: ${error.message}`);

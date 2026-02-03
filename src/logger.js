@@ -3,7 +3,11 @@ const path = require('path');
 
 const LOG_FILE = path.join(__dirname, '../app.log');
 
+// Enable debug logging via environment variable
+const DEBUG_ENABLED = process.env.DEBUG === 'true' || process.env.LOG_LEVEL === 'debug';
+
 const levels = {
+  debug: 'DEBUG',
   info: 'INFO',
   warn: 'WARN',
   error: 'ERROR'
@@ -14,16 +18,23 @@ const colors = {
   reset: '\x1b[0m',
   red: '\x1b[31m',
   yellow: '\x1b[33m',
-  cyan: '\x1b[36m'
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m'
 };
 
 const levelColors = {
+  debug: colors.gray,
   info: colors.cyan,
   warn: colors.yellow,
   error: colors.red
 };
 
 function log(level, ...args) {
+  // Skip debug logs unless debug is enabled
+  if (level === 'debug' && !DEBUG_ENABLED) {
+    return;
+  }
+  
   const timestamp = new Date().toISOString();
   const levelLabel = levels[level];
   const message = `[${timestamp}] [${levelLabel}] ${args.join(' ')}`;
@@ -37,6 +48,7 @@ function log(level, ...args) {
 }
 
 module.exports = {
+  debug: (...args) => log('debug', ...args),
   info: (...args) => log('info', ...args),
   warn: (...args) => log('warn', ...args),
   error: (...args) => log('error', ...args)
