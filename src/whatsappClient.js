@@ -233,6 +233,32 @@ class WhatsAppClient extends EventEmitter {
       return false;
     }
   }
+  
+  /**
+   * Pin a message in the chat
+   * @param {string} messageId - Message ID to pin
+   * @param {number} durationSeconds - Duration in seconds (default: 86400 = 24 hours)
+   * @returns {Promise<boolean>} True if pinned successfully
+   */
+  async pinMessage(messageId, durationSeconds = 86400) {
+    try {
+      if (!this.isReady) {
+        throw new Error('WhatsApp client not ready');
+      }
+      
+      const message = await this.client.getMessageById(messageId);
+      if (message) {
+        const result = await message.pin(durationSeconds);
+        logger.info(`Pinned message ${messageId} for ${durationSeconds} seconds`);
+        return result;
+      }
+      logger.warn(`Message ${messageId} not found for pinning`);
+      return false;
+    } catch (error) {
+      logger.error(`Failed to pin message ${messageId}: ${error.message}`);
+      throw error;
+    }
+  }
 }
 
 module.exports = new WhatsAppClient();

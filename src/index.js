@@ -5,12 +5,17 @@ const { formatOffer } = require('./messageFormatter');
 const config = require('./config');
 const logger = require('./logger');
 const WebServer = require('./web/server');
+const statsTracker = require('./statsTracker');
+const DailySummaryScheduler = require('./dailySummaryScheduler');
 
 // Store the interval timer and next check time
 let checkInterval = null;
 let nextCheckTime = null;
 let isCheckInProgress = false; // Prevent overlapping checks
 let shouldAbortCheck = false; // Signal to abort ongoing check
+
+// Daily summary scheduler instance
+let dailySummaryScheduler = null;
 
 // Export function to get next check time for UI
 function getNextCheckTime() {
@@ -226,6 +231,9 @@ async function start() {
   try {
     logger.info('Starting RoboSats Notifier...');
     
+    // Initialize stats tracker
+    await statsTracker.initialize();
+    
     // Start web server first, pass the status functions
     const webServer = new WebServer(whatsappClient, getNextCheckTime, isCheckRunning);
     await webServer.start();
@@ -245,6 +253,12 @@ async function start() {
     });
     
     logger.info('All systems ready.');
+    
+    // Initialize daily summary scheduler
+    dailySummaryScheduler = new DailySummaryScheduler(whatsappClient);
+    if (config.DAILY_SUMMARY_ENABLED) {
+      dailySummaryScheduler.start();
+    }
     
     // Only start checking if bot is enabled AND not first run
     // On first run, user must configure settings and explicitly start the bot
@@ -281,6 +295,17 @@ async function start() {
         logger.info('Settings changed - restarting check interval...');
         await checkForNewOffers();
         startCheckInterval();
+      }
+      
+      // Handle daily summary scheduler changes
+      if (dailySummaryScheduler) {
+        if (config.DAILY_SUMMARY_ENABLED) {
+          logger.info('Daily summary enabled or settings changed - restarting scheduler...');
+          dailySummaryScheduler.start();
+        } else {
+          logger.info('Daily summary disabled - stopping scheduler');
+          dailySummaryScheduler.stop();
+        }
       }
     });
     

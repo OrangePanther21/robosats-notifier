@@ -1,4 +1,5 @@
 const config = require('./config');
+const statsTracker = require('./statsTracker');
 
 // Language strings
 const STRINGS = {
@@ -155,13 +156,26 @@ function formatOffer(offer) {
   // Show coordinator (always present from robosatsClient)
   const coordinatorId = offer.coordinator;
   const coordinatorName = config.COORDINATOR_MAP[coordinatorId] || coordinatorId;
+  
+  // Get coordinator health indicator
+  const healthPercent = statsTracker.getCoordinatorHealth(coordinatorId);
+  let healthIndicator = '';
+  if (healthPercent !== null) {
+    if (healthPercent >= 95) healthIndicator = ' ✅';
+    else if (healthPercent >= 60) healthIndicator = ' ⚠️';
+    else if (healthPercent >= 20) healthIndicator = ' ❌';
+    else healthIndicator = ' ☠️';
+    
+    // Add percentage to indicator
+    healthIndicator += ` ${healthPercent}%`;
+  }
     
   // Generate link - use configurable onion URL with format: /order/[coordinator]/[id]
   const link = `${config.ROBOSATS_ONION_URL}/order/${coordinatorId}/${offer.id}`;
   
   return `
-*${type} ${strings.offer} (${coordinatorName})*
-━━━━━━━━━━━━━━━━━
+*${type} ${strings.offer} (${coordinatorName}${healthIndicator})*
+━━━━━━━━━━━━━━━━━━━━━
 💰 *${strings.amount}:* ${amount}
 💵 *${strings.price}:* ${price}${premium ? ` (${premium})` : ''}
 🏦 *${strings.payment}:* ${paymentMethod}

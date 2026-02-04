@@ -190,6 +190,132 @@
                     </div>
                 </div>
 
+                <!-- Daily Summary Section -->
+                <div style="margin-top: 30px; border-top: 2px solid #e5e7eb; padding-top: 20px;">
+                    <h3 style="margin-bottom: 20px;">📊 Daily Summary</h3>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="daily-summary-enabled" name="DAILY_SUMMARY_ENABLED">
+                            <span>Enable Daily Summary</span>
+                        </label>
+                        <small>Receive a daily summary message with BTC price, offer statistics, and coordinator health</small>
+                    </div>
+
+                    <div id="daily-summary-options" style="display: none; margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 6px;">
+                        
+                        <div class="form-group">
+                            <label for="daily-summary-time">Summary Time</label>
+                            <input type="time" id="daily-summary-time" name="DAILY_SUMMARY_TIME" value="09:00">
+                            <small>Time of day to send the daily summary</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="daily-summary-timezone">Timezone</label>
+                            <div class="multiselect" id="timezone-multiselect">
+                                <div class="multiselect-trigger">
+                                    <span class="multiselect-text">Select timezone...</span>
+                                    <span class="multiselect-arrow"></span>
+                                </div>
+                                <div class="multiselect-dropdown">
+                                    <input type="text" class="multiselect-search" placeholder="Search...">
+                                    <div class="multiselect-options"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="daily-summary-timezone" name="DAILY_SUMMARY_TIMEZONE">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="daily-summary-currency">Primary Currency (for BTC price)</label>
+                            <div class="multiselect" id="summary-currency-multiselect">
+                                <div class="multiselect-trigger">
+                                    <span class="multiselect-text">Select currency...</span>
+                                    <span class="multiselect-arrow"></span>
+                                </div>
+                                <div class="multiselect-dropdown">
+                                    <input type="text" class="multiselect-search" placeholder="Search...">
+                                    <div class="multiselect-options"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="daily-summary-currency" name="DAILY_SUMMARY_CURRENCY">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Include in Summary</label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="section-btc-price" checked>
+                                <span>BTC Price</span>
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="section-offer-stats" checked>
+                                <span>Offer Statistics</span>
+                            </label>
+                            <div style="margin-left: 24px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="section-offer-count" checked>
+                                    <span>Offer Count</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="section-premium" checked>
+                                    <span>Premium Analytics</span>
+                                </label>
+                            </div>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="section-coordinator-health" checked>
+                                <span>Coordinator Health</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Closing Message</label>
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="DAILY_SUMMARY_CLOSING_MODE" value="none" checked>
+                                    <span>None</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="DAILY_SUMMARY_CLOSING_MODE" value="custom">
+                                    <span>Custom Message</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="DAILY_SUMMARY_CLOSING_MODE" value="random">
+                                    <span>Random from List</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="custom-message-field" class="form-group" style="display: none;">
+                            <label for="daily-summary-closing-message">Custom Closing Message</label>
+                            <textarea id="daily-summary-closing-message" name="DAILY_SUMMARY_CLOSING_MESSAGE" rows="3" placeholder="Your motivational message..." style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;"></textarea>
+                            <small>This message will appear at the end of your daily summary</small>
+                        </div>
+
+                        <div id="random-message-field" class="form-group" style="display: none;">
+                            <label for="daily-summary-random-messages">Random Messages (JSON)</label>
+                            <textarea id="daily-summary-random-messages" name="DAILY_SUMMARY_RANDOM_MESSAGES" class="json-editor" rows="8" placeholder='{"messages": ["Message 1", "Message 2", "Message 3"]}'></textarea>
+                            <small>Enter a JSON object with a "messages" array. One message will be randomly selected each day.</small>
+                            <small class="error-message" id="random-messages-error"></small>
+                        </div>
+
+                        <!-- Message Preview -->
+                        <div class="form-group" style="margin-top: 24px;">
+                            <div class="message-preview-label">
+                                👁️ Message Preview
+                                <small>(sample data used for preview)</small>
+                            </div>
+                            <div id="daily-summary-preview" class="message-preview"></div>
+                        </div>
+
+                        <!-- Test Summary Button -->
+                        <div class="form-group" style="margin-top: 20px;">
+                            <button type="button" id="test-summary-btn" class="btn btn-test" style="width: 100%;">
+                                📨 Send Test Summary
+                            </button>
+                            <small style="margin-top: 8px;">Send the daily summary now to test how it looks in WhatsApp</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" disabled>Save Settings</button>
                 </div>
@@ -207,7 +333,7 @@
         </section>
 
         <footer>
-            <p>Settings are applied immediately - no restart required!</p>
+            <p>Settings are applied immediately - no app restart required!</p>
         </footer>
     </div>
 
@@ -568,6 +694,140 @@
         let languageMultiSelect;
         let countrySelector;
         
+        // Message preview function
+        function updateMessagePreview() {
+            const previewEl = document.getElementById('daily-summary-preview');
+            if (!previewEl) return;
+            
+            const dailySummaryEnabled = document.getElementById('daily-summary-enabled')?.checked;
+            if (!dailySummaryEnabled) {
+                previewEl.textContent = '(Enable daily summary to see preview)';
+                return;
+            }
+            
+            // Get current language
+            const language = languageMultiSelect?.getSelected()[0] || 'EN';
+            
+            // Get sections
+            const sections = {
+                btcPrice: document.getElementById('section-btc-price')?.checked,
+                offerStats: document.getElementById('section-offer-stats')?.checked,
+                offerCount: document.getElementById('section-offer-count')?.checked,
+                premiumAnalysis: document.getElementById('section-premium')?.checked,
+                coordinatorHealth: document.getElementById('section-coordinator-health')?.checked
+            };
+            
+            // Get currency
+            const currency = window.summaryCurrencyMultiSelect?.getSelected()[0] || 'USD';
+            
+            // Get closing message
+            const closingMode = document.querySelector('input[name="DAILY_SUMMARY_CLOSING_MODE"]:checked')?.value;
+            let closingMessage = '';
+            if (closingMode === 'custom') {
+                closingMessage = document.getElementById('daily-summary-closing-message')?.value || '';
+            } else if (closingMode === 'random') {
+                try {
+                    const jsonValue = document.getElementById('daily-summary-random-messages')?.value;
+                    if (jsonValue) {
+                        const parsed = JSON.parse(jsonValue);
+                        if (parsed.messages && parsed.messages.length > 0) {
+                            // Show first message as sample
+                            closingMessage = parsed.messages[0] + ' (random)';
+                        }
+                    }
+                } catch (e) {
+                    closingMessage = '';
+                }
+            }
+            
+            // Strings based on language
+            const strings = language === 'ES' ? {
+                dailySummary: 'Resumen Diario',
+                btcPrice: 'Precio BTC',
+                offers24h: 'Ofertas (Últimas 24h)',
+                total: 'Total',
+                buy: 'COMPRA',
+                sell: 'VENTA',
+                avgPremium: 'Prima Promedio',
+                coordinatorHealth: 'Estado de Coordinadores'
+            } : {
+                dailySummary: 'Daily Summary',
+                btcPrice: 'BTC Price',
+                offers24h: 'Offers (Last 24h)',
+                total: 'Total',
+                buy: 'BUY',
+                sell: 'SELL',
+                avgPremium: 'Avg Premium',
+                coordinatorHealth: 'Coordinator Health'
+            };
+            
+            // Build preview message
+            const now = new Date();
+            const dateStr = now.toLocaleDateString(language === 'ES' ? 'es-ES' : 'en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            
+            let message = `📊 *${strings.dailySummary} - ${dateStr}*\n`;
+            message += `━━━━━━━━━━━━━━━━━\n\n`;
+            
+            // BTC Price section (sample data)
+            if (sections.btcPrice) {
+                message += `💰 *${strings.btcPrice} (${currency})*\n`;
+                message += `$98,450 (+2.3% 24h)\n\n`;
+            }
+            
+            // Offer Statistics section (sample data) - per currency
+            if (sections.offerStats) {
+                // Get all selected target currencies
+                const selectedCurrencies = currenciesMultiSelect?.getSelected();
+                const targetCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : [currency];
+                
+                // Sample data for each currency
+                const sampleData = {
+                    USD: { buy: 28, sell: 19, buyPremium: '+3.2%', sellPremium: '+4.1%' },
+                    PYG: { buy: 15, sell: 8, buyPremium: '-0.5%', sellPremium: '+5.2%' },
+                    EUR: { buy: 12, sell: 10, buyPremium: '+2.1%', sellPremium: '+3.8%' },
+                    ARS: { buy: 22, sell: 14, buyPremium: '+1.8%', sellPremium: '+6.5%' }
+                };
+                
+                // Show section for each currency
+                for (const curr of targetCurrencies) {
+                    const data = sampleData[curr] || { buy: 10, sell: 5, buyPremium: '+2.0%', sellPremium: '+3.5%' };
+                    const total = data.buy + data.sell;
+                    
+                    message += `📈 *${language === 'ES' ? 'Ofertas' : 'Offers'} ${curr} (24h)*\n`;
+                    
+                    if (sections.offerCount) {
+                        message += `${strings.total}: ${total} (${data.buy} ${strings.buy} | ${data.sell} ${strings.sell})\n`;
+                    }
+                    
+                    if (sections.premiumAnalysis) {
+                        message += `${strings.avgPremium}: ${data.buyPremium} (${strings.buy}) / ${data.sellPremium} (${strings.sell})\n`;
+                    }
+                    message += '\n';
+                }
+            }
+            
+            // Coordinator Health section (sample data)
+            if (sections.coordinatorHealth) {
+                message += `🌐 *${strings.coordinatorHealth}*\n`;
+                message += `1. LibreBazaar — 100% ✅ (1.2M sats)\n`;
+                message += `2. Temple of Sats — 98% ✅ (800K sats)\n`;
+                message += `3. Over the moon — 95% ✅ (650K sats)\n`;
+                message += `4. FreedomSats — 87% ⚠️ (200K sats)\n`;
+                message += `5. BitcoinVeneto — 62% ⚠️ (50K sats)\n\n`;
+            }
+            
+            // Closing message
+            if (closingMessage) {
+                message += `${closingMessage}\n`;
+            }
+            
+            previewEl.textContent = message;
+        }
+        
         // Bot enabled state
         let botEnabled = true;
         
@@ -887,7 +1147,14 @@
             'LANGUAGE',
             'ROBOSATS_COORDINATORS',
             'ROBOSATS_ONION_URL',
-            'DELETE_INACTIVE_MESSAGES'
+            'DELETE_INACTIVE_MESSAGES',
+            'DAILY_SUMMARY_ENABLED',
+            'DAILY_SUMMARY_TIME',
+            'DAILY_SUMMARY_TIMEZONE',
+            'DAILY_SUMMARY_CURRENCY',
+            'DAILY_SUMMARY_CLOSING_MODE',
+            'DAILY_SUMMARY_CLOSING_MESSAGE',
+            'DAILY_SUMMARY_RANDOM_MESSAGES'
         ];
         
         // Get current form values (only tracked fields)
@@ -898,11 +1165,32 @@
                 if (input) {
                     if (input.type === 'checkbox') {
                         values[field] = input.checked ? 'true' : 'false';
+                    } else if (input.type === 'radio') {
+                        // For radio buttons, get the checked value
+                        const checkedRadio = document.querySelector(`[name="${field}"]:checked`);
+                        values[field] = checkedRadio ? checkedRadio.value : '';
                     } else {
                         values[field] = (input.value || '').trim();
                     }
+                } else {
+                    // Check if it's a checkbox by ID (for daily summary enabled)
+                    if (field === 'DAILY_SUMMARY_ENABLED') {
+                        const checkbox = document.getElementById('daily-summary-enabled');
+                        values[field] = checkbox && checkbox.checked ? 'true' : 'false';
+                    }
                 }
             });
+            
+            // Also track section checkboxes as a combined value
+            const sections = {
+                btcPrice: document.getElementById('section-btc-price')?.checked || false,
+                offerStats: document.getElementById('section-offer-stats')?.checked || false,
+                offerCount: document.getElementById('section-offer-count')?.checked || false,
+                premiumAnalysis: document.getElementById('section-premium')?.checked || false,
+                coordinatorHealth: document.getElementById('section-coordinator-health')?.checked || false
+            };
+            values['DAILY_SUMMARY_SECTIONS'] = JSON.stringify(sections);
+            
             return values;
         }
         
@@ -1016,6 +1304,7 @@
                 currenciesMultiSelect.onChange = () => {
                     document.getElementById('target-currencies').value = currenciesMultiSelect.getSelected().join(',');
                     updateSaveButtonState();
+                    updateMessagePreview();
                 };
                 document.getElementById('target-currencies').value = currenciesMultiSelect.getSelected().join(',');
                 
@@ -1040,6 +1329,7 @@
                     const selected = languageMultiSelect.getSelected();
                     document.getElementById('language').value = selected.length > 0 ? selected[0] : '';
                     updateSaveButtonState();
+                    updateMessagePreview();
                 };
                 document.getElementById('language').value = languageMultiSelect.getSelected()[0] || '';
                 
@@ -1056,6 +1346,216 @@
                     clearContactFieldsError();
                 };
                 // Don't set contact-country-code - keep it empty
+                
+                // Load daily summary settings
+                const timezonesData = await fetch('/api/timezones').then(r => r.json());
+                // Convert to {id, name} format expected by MultiSelect
+                const timezones = timezonesData.map(tz => ({ id: tz.value, name: tz.label }));
+                const selectedTimezone = settings.DAILY_SUMMARY_TIMEZONE || 'UTC';
+                window.timezoneMultiSelect = new MultiSelect('timezone-multiselect', timezones, [selectedTimezone], true);
+                window.timezoneMultiSelect.onChange = () => {
+                    const selected = window.timezoneMultiSelect.getSelected();
+                    document.getElementById('daily-summary-timezone').value = selected.length > 0 ? selected[0] : 'UTC';
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                };
+                document.getElementById('daily-summary-timezone').value = selectedTimezone;
+                
+                // Load summary currency multiselect (single-select from target currencies)
+                const selectedSummaryCurrency = settings.DAILY_SUMMARY_CURRENCY || 'USD';
+                window.summaryCurrencyMultiSelect = new MultiSelect('summary-currency-multiselect', currencies, [selectedSummaryCurrency], true);
+                window.summaryCurrencyMultiSelect.onChange = () => {
+                    const selected = window.summaryCurrencyMultiSelect.getSelected();
+                    document.getElementById('daily-summary-currency').value = selected.length > 0 ? selected[0] : 'USD';
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                };
+                document.getElementById('daily-summary-currency').value = selectedSummaryCurrency;
+                
+                // Load daily summary sections checkboxes
+                if (settings.DAILY_SUMMARY_SECTIONS) {
+                    try {
+                        const sections = typeof settings.DAILY_SUMMARY_SECTIONS === 'string' ? 
+                            JSON.parse(settings.DAILY_SUMMARY_SECTIONS) : settings.DAILY_SUMMARY_SECTIONS;
+                        document.getElementById('section-btc-price').checked = sections.btcPrice !== false;
+                        document.getElementById('section-offer-stats').checked = sections.offerStats !== false;
+                        document.getElementById('section-offer-count').checked = sections.offerCount !== false;
+                        document.getElementById('section-premium').checked = sections.premiumAnalysis !== false;
+                        document.getElementById('section-coordinator-health').checked = sections.coordinatorHealth !== false;
+                    } catch (e) {
+                        console.warn('Failed to parse DAILY_SUMMARY_SECTIONS');
+                    }
+                }
+                
+                // Daily summary enabled checkbox
+                const dailySummaryEnabled = document.getElementById('daily-summary-enabled');
+                const dailySummaryOptions = document.getElementById('daily-summary-options');
+                dailySummaryEnabled.checked = settings.DAILY_SUMMARY_ENABLED === 'true' || settings.DAILY_SUMMARY_ENABLED === true;
+                dailySummaryOptions.style.display = dailySummaryEnabled.checked ? 'block' : 'none';
+                
+                dailySummaryEnabled.addEventListener('change', () => {
+                    dailySummaryOptions.style.display = dailySummaryEnabled.checked ? 'block' : 'none';
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
+                
+                // Daily summary closing mode
+                const closingModeRadios = document.querySelectorAll('input[name="DAILY_SUMMARY_CLOSING_MODE"]');
+                const closingMode = settings.DAILY_SUMMARY_CLOSING_MODE || 'none';
+                closingModeRadios.forEach(radio => {
+                    radio.checked = (radio.value === closingMode);
+                });
+                
+                const customMessageField = document.getElementById('custom-message-field');
+                const randomMessageField = document.getElementById('random-message-field');
+                
+                function updateClosingMessageFields() {
+                    const selectedMode = document.querySelector('input[name="DAILY_SUMMARY_CLOSING_MODE"]:checked')?.value;
+                    customMessageField.style.display = selectedMode === 'custom' ? 'block' : 'none';
+                    randomMessageField.style.display = selectedMode === 'random' ? 'block' : 'none';
+                    updateMessagePreview();
+                }
+                
+                updateClosingMessageFields();
+                
+                closingModeRadios.forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        updateClosingMessageFields();
+                        updateSaveButtonState();
+                    });
+                });
+                
+                // Load random messages JSON
+                const randomMessagesTextarea = document.getElementById('daily-summary-random-messages');
+                if (settings.DAILY_SUMMARY_RANDOM_MESSAGES) {
+                    try {
+                        // Pretty print the JSON
+                        const parsed = typeof settings.DAILY_SUMMARY_RANDOM_MESSAGES === 'string' 
+                            ? JSON.parse(settings.DAILY_SUMMARY_RANDOM_MESSAGES) 
+                            : settings.DAILY_SUMMARY_RANDOM_MESSAGES;
+                        randomMessagesTextarea.value = JSON.stringify(parsed, null, 2);
+                    } catch (e) {
+                        randomMessagesTextarea.value = settings.DAILY_SUMMARY_RANDOM_MESSAGES;
+                    }
+                } else {
+                    // Set default template
+                    const defaultMessages = {
+                        messages: [
+                            "Que lindo día para comprar unos satoshis ₿",
+                            "Stack sats, stay humble 🙏",
+                            "Not your keys, not your coins 🔑",
+                            "1 BTC = 1 BTC",
+                            "HODL strong 💪"
+                        ]
+                    };
+                    randomMessagesTextarea.value = JSON.stringify(defaultMessages, null, 2);
+                }
+                
+                // JSON validation for random messages
+                randomMessagesTextarea.addEventListener('input', () => {
+                    validateRandomMessagesJson();
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
+                
+                function validateRandomMessagesJson() {
+                    const textarea = document.getElementById('daily-summary-random-messages');
+                    const errorEl = document.getElementById('random-messages-error');
+                    const value = textarea.value.trim();
+                    
+                    if (!value) {
+                        textarea.classList.remove('invalid', 'valid');
+                        errorEl.textContent = '';
+                        errorEl.classList.remove('visible');
+                        return true;
+                    }
+                    
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (!parsed.messages || !Array.isArray(parsed.messages)) {
+                            throw new Error('JSON must have a "messages" array');
+                        }
+                        if (parsed.messages.length === 0) {
+                            throw new Error('Messages array cannot be empty');
+                        }
+                        if (!parsed.messages.every(m => typeof m === 'string')) {
+                            throw new Error('All messages must be strings');
+                        }
+                        
+                        textarea.classList.remove('invalid');
+                        textarea.classList.add('valid');
+                        errorEl.textContent = '';
+                        errorEl.classList.remove('visible');
+                        return true;
+                    } catch (e) {
+                        textarea.classList.remove('valid');
+                        textarea.classList.add('invalid');
+                        errorEl.textContent = e.message;
+                        errorEl.classList.add('visible');
+                        return false;
+                    }
+                }
+                
+                // Initial validation
+                validateRandomMessagesJson();
+                
+                // Section checkboxes change listeners
+                ['section-btc-price', 'section-offer-stats', 'section-offer-count', 'section-premium', 'section-coordinator-health'].forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', () => {
+                            updateSaveButtonState();
+                            updateMessagePreview();
+                        });
+                    }
+                });
+                
+                // Parent-child checkbox logic for offer statistics
+                const offerStatsParent = document.getElementById('section-offer-stats');
+                const offerCountChild = document.getElementById('section-offer-count');
+                const premiumChild = document.getElementById('section-premium');
+                
+                // When parent is changed
+                offerStatsParent?.addEventListener('change', () => {
+                    if (offerStatsParent.checked) {
+                        // When parent is checked, check both children
+                        offerCountChild.checked = true;
+                        premiumChild.checked = true;
+                    } else {
+                        // When parent is unchecked, uncheck both children
+                        offerCountChild.checked = false;
+                        premiumChild.checked = false;
+                    }
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
+                
+                // When any child checkbox changes
+                const updateParentFromChildren = () => {
+                    // If any child is checked, parent should be checked
+                    if (offerCountChild?.checked || premiumChild?.checked) {
+                        if (!offerStatsParent?.checked) {
+                            offerStatsParent.checked = true;
+                        }
+                    } else {
+                        // If both children are unchecked, uncheck parent
+                        if (offerStatsParent?.checked) {
+                            offerStatsParent.checked = false;
+                        }
+                    }
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                };
+                
+                offerCountChild?.addEventListener('change', updateParentFromChildren);
+                premiumChild?.addEventListener('change', updateParentFromChildren);
+                
+                // Time and textarea change listeners
+                document.getElementById('daily-summary-time')?.addEventListener('change', updateSaveButtonState);
+                document.getElementById('daily-summary-closing-message')?.addEventListener('input', () => {
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
                 
                 // Initial test button state update
                 updateTestButtonStates();
@@ -1126,6 +1626,14 @@
                 if (deleteInactiveCheckbox) {
                     deleteInactiveCheckbox.addEventListener('change', updateSaveButtonState);
                 }
+                
+                // Load custom closing message
+                if (settings.DAILY_SUMMARY_CLOSING_MESSAGE) {
+                    document.getElementById('daily-summary-closing-message').value = settings.DAILY_SUMMARY_CLOSING_MESSAGE;
+                }
+                
+                // Initial message preview
+                setTimeout(updateMessagePreview, 100);
                 
             } catch (error) {
                 console.error('Error loading settings:', error);
@@ -1415,6 +1923,42 @@
             const deleteInactiveCheckbox = document.getElementById('delete-inactive');
             if (deleteInactiveCheckbox) {
                 settings.DELETE_INACTIVE_MESSAGES = deleteInactiveCheckbox.checked ? 'true' : 'false';
+            }
+            
+            // Handle daily summary enabled checkbox
+            const dailySummaryEnabledCheckbox = document.getElementById('daily-summary-enabled');
+            if (dailySummaryEnabledCheckbox) {
+                settings.DAILY_SUMMARY_ENABLED = dailySummaryEnabledCheckbox.checked ? 'true' : 'false';
+            }
+            
+            // Handle daily summary sections as JSON
+            const dailySummarySections = {
+                btcPrice: document.getElementById('section-btc-price')?.checked || false,
+                offerStats: document.getElementById('section-offer-stats')?.checked || false,
+                offerCount: document.getElementById('section-offer-count')?.checked || false,
+                premiumAnalysis: document.getElementById('section-premium')?.checked || false,
+                coordinatorHealth: document.getElementById('section-coordinator-health')?.checked || false
+            };
+            settings.DAILY_SUMMARY_SECTIONS = JSON.stringify(dailySummarySections);
+            
+            // Handle random messages JSON
+            const randomMessagesValue = document.getElementById('daily-summary-random-messages')?.value?.trim();
+            if (randomMessagesValue) {
+                try {
+                    // Validate and normalize JSON
+                    const parsed = JSON.parse(randomMessagesValue);
+                    if (parsed.messages && Array.isArray(parsed.messages)) {
+                        settings.DAILY_SUMMARY_RANDOM_MESSAGES = JSON.stringify(parsed);
+                    }
+                } catch (e) {
+                    // If invalid JSON when mode is random, show error
+                    const closingMode = document.querySelector('input[name="DAILY_SUMMARY_CLOSING_MODE"]:checked')?.value;
+                    if (closingMode === 'random') {
+                        showMessage('Invalid JSON format for random messages', 'error', 10000);
+                        restoreUIState();
+                        return;
+                    }
+                }
             }
             
             // Validate notification settings
@@ -1787,6 +2331,34 @@
             } finally {
                 btn.disabled = false;
                 btn.textContent = originalText;
+            }
+        });
+        
+        // Test summary button
+        document.getElementById('test-summary-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('test-summary-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '📨 Sending...';
+            
+            try {
+                const response = await fetch('/api/test-summary', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(result.message || 'Test summary sent successfully!', 'success', 5000);
+                } else {
+                    showMessage(result.error || 'Failed to send test summary', 'error', 10000);
+                }
+            } catch (error) {
+                console.error('Error sending test summary:', error);
+                showMessage('Error sending test summary', 'error', 10000);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         });
         

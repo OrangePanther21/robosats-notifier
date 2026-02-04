@@ -475,8 +475,67 @@ function getConfig() {
     LANGUAGE: process.env.LANGUAGE,
     BOT_ENABLED: process.env.BOT_ENABLED,
     DELETE_INACTIVE_MESSAGES: process.env.DELETE_INACTIVE_MESSAGES,
+    DAILY_SUMMARY_ENABLED: process.env.DAILY_SUMMARY_ENABLED,
+    DAILY_SUMMARY_TIME: process.env.DAILY_SUMMARY_TIME,
+    DAILY_SUMMARY_TIMEZONE: process.env.DAILY_SUMMARY_TIMEZONE,
+    DAILY_SUMMARY_CURRENCY: process.env.DAILY_SUMMARY_CURRENCY,
+    DAILY_SUMMARY_SECTIONS: process.env.DAILY_SUMMARY_SECTIONS,
+    DAILY_SUMMARY_CLOSING_MODE: process.env.DAILY_SUMMARY_CLOSING_MODE,
+    DAILY_SUMMARY_CLOSING_MESSAGE: process.env.DAILY_SUMMARY_CLOSING_MESSAGE,
+    DAILY_SUMMARY_RANDOM_MESSAGES: process.env.DAILY_SUMMARY_RANDOM_MESSAGES,
     IS_FIRST_RUN: IS_FIRST_RUN
   };
+}
+
+// Parse daily summary sections from JSON string
+function parseDailySummarySections() {
+  const sectionsStr = process.env.DAILY_SUMMARY_SECTIONS;
+  if (!sectionsStr) {
+    return {
+      btcPrice: true,
+      offerStats: true,
+      offerCount: true,
+      premiumAnalysis: true,
+      coordinatorHealth: true
+    };
+  }
+  
+  try {
+    const parsed = JSON.parse(sectionsStr);
+    // Ensure offerCount exists (default to true if not specified for backward compatibility)
+    if (parsed.offerStats && parsed.offerCount === undefined) {
+      parsed.offerCount = true;
+    }
+    return parsed;
+  } catch (error) {
+    console.warn('Failed to parse DAILY_SUMMARY_SECTIONS, using defaults');
+    return {
+      btcPrice: true,
+      offerStats: true,
+      offerCount: true,
+      premiumAnalysis: true,
+      coordinatorHealth: true
+    };
+  }
+}
+
+// Parse daily summary random messages from JSON string
+function parseDailySummaryRandomMessages() {
+  const messagesStr = process.env.DAILY_SUMMARY_RANDOM_MESSAGES;
+  if (!messagesStr) {
+    return null;
+  }
+  
+  try {
+    const parsed = JSON.parse(messagesStr);
+    if (parsed.messages && Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+      return parsed.messages;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Failed to parse DAILY_SUMMARY_RANDOM_MESSAGES');
+    return null;
+  }
 }
 
 // Reload configuration and update module exports
@@ -500,6 +559,14 @@ function reloadConfig() {
   config.LOG_LEVEL = process.env.LOG_LEVEL || 'info';
   config.BOT_ENABLED = process.env.BOT_ENABLED !== 'false'; // Default to true
   config.DELETE_INACTIVE_MESSAGES = process.env.DELETE_INACTIVE_MESSAGES === 'true';
+  config.DAILY_SUMMARY_ENABLED = process.env.DAILY_SUMMARY_ENABLED === 'true';
+  config.DAILY_SUMMARY_TIME = process.env.DAILY_SUMMARY_TIME || '09:00';
+  config.DAILY_SUMMARY_TIMEZONE = process.env.DAILY_SUMMARY_TIMEZONE || 'UTC';
+  config.DAILY_SUMMARY_CURRENCY = process.env.DAILY_SUMMARY_CURRENCY || 'USD';
+  config.DAILY_SUMMARY_SECTIONS = parseDailySummarySections();
+  config.DAILY_SUMMARY_CLOSING_MODE = process.env.DAILY_SUMMARY_CLOSING_MODE || 'none';
+  config.DAILY_SUMMARY_CLOSING_MESSAGE = process.env.DAILY_SUMMARY_CLOSING_MESSAGE || '';
+  config.DAILY_SUMMARY_RANDOM_MESSAGES = parseDailySummaryRandomMessages();
   
   // Emit config change event
   configEmitter.emit('configChanged');
@@ -537,6 +604,16 @@ module.exports = {
   
   // Auto-delete inactive messages
   DELETE_INACTIVE_MESSAGES: process.env.DELETE_INACTIVE_MESSAGES === 'true',
+  
+  // Daily Summary Configuration
+  DAILY_SUMMARY_ENABLED: process.env.DAILY_SUMMARY_ENABLED === 'true',
+  DAILY_SUMMARY_TIME: process.env.DAILY_SUMMARY_TIME || '09:00',
+  DAILY_SUMMARY_TIMEZONE: process.env.DAILY_SUMMARY_TIMEZONE || 'UTC',
+  DAILY_SUMMARY_CURRENCY: process.env.DAILY_SUMMARY_CURRENCY || 'USD',
+  DAILY_SUMMARY_SECTIONS: parseDailySummarySections(),
+  DAILY_SUMMARY_CLOSING_MODE: process.env.DAILY_SUMMARY_CLOSING_MODE || 'none',
+  DAILY_SUMMARY_CLOSING_MESSAGE: process.env.DAILY_SUMMARY_CLOSING_MESSAGE || '',
+  DAILY_SUMMARY_RANDOM_MESSAGES: parseDailySummaryRandomMessages(),
   
   DATA_DIR: './data',
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',

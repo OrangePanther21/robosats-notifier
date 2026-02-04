@@ -1,6 +1,7 @@
 const axios = require('axios');
 const config = require('./config');
 const logger = require('./logger');
+const statsTracker = require('./statsTracker');
 
 // Check if we should use mock mode
 if (config.ROBOSATS_USE_MOCK) {
@@ -117,6 +118,9 @@ if (config.ROBOSATS_USE_MOCK) {
       
       const { coordinator, offers, duration, success, error } = result.value;
       
+      // Record coordinator call in stats tracker
+      statsTracker.recordCoordinatorCall(coordinator, success);
+      
       if (!success) {
         summary.push(`  ${coordinator}: ERROR - ${error} (${duration}ms)`);
         continue;
@@ -130,6 +134,14 @@ if (config.ROBOSATS_USE_MOCK) {
       
       // Mark this coordinator as successfully reached
       reachableCoordinators.add(coordinator);
+      
+      // Record each offer in stats tracker with currency code
+      offers.forEach(offer => {
+        const currency = config.TARGET_CURRENCIES.find(c => c.id === offer.currency);
+        if (currency) {
+          statsTracker.recordOffer(offer, currency.code);
+        }
+      });
       
       // Add coordinator info to each offer
       const offersWithCoordinator = offers.map(offer => ({

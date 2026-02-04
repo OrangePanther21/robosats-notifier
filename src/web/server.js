@@ -3,6 +3,9 @@ const path = require('path');
 const config = require('../config');
 const logger = require('../logger');
 const offerTracker = require('../offerTracker');
+const statsTracker = require('../statsTracker');
+const yadioClient = require('../yadioClient');
+const { formatDailySummary } = require('../summaryMessageFormatter');
 
 class WebServer {
   constructor(whatsappClient, getNextCheckTimeFn, isCheckRunningFn) {
@@ -108,6 +111,68 @@ class WebServer {
       }
     });
 
+    // Send test daily summary
+    this.app.post('/api/test-summary', async (req, res) => {
+      try {
+        if (!this.whatsappClient.isReady) {
+          return res.status(503).json({ 
+            error: 'WhatsApp is not connected yet. Please wait for authentication.' 
+          });
+        }
+
+        logger.info('Sending test daily summary...');
+        
+        // Get 24h stats
+        const stats = statsTracker.get24hStats();
+        
+        // Get BTC price
+        const currency = config.DAILY_SUMMARY_CURRENCY || 'USD';
+        let priceData = null;
+        try {
+          priceData = await yadioClient.getPriceData(currency);
+        } catch (priceError) {
+          logger.warn('Failed to fetch BTC price for test summary:', priceError.message);
+        }
+        
+        // Format message
+        const message = formatDailySummary(stats, priceData);
+        
+        // Send message
+        const sentMessage = await this.whatsappClient.sendNotification(message);
+        
+        if (sentMessage && sentMessage.id) {
+          // Try to pin the message for 24 hours
+          try {
+            const messageId = sentMessage.id._serialized;
+            await this.whatsappClient.pinMessage(messageId, 86400); // 24 hours
+            logger.info('Test daily summary sent and pinned successfully');
+            res.json({ 
+              success: true, 
+              message: 'Test summary sent and pinned successfully!' 
+            });
+          } catch (pinError) {
+            logger.warn('Failed to pin test summary message:', pinError.message);
+            res.json({ 
+              success: true, 
+              message: 'Test summary sent successfully (pinning not available)' 
+            });
+          }
+        } else {
+          res.json({ 
+            success: true, 
+            message: 'Test summary sent successfully!' 
+          });
+        }
+        
+        logger.info('Test daily summary sent via web UI');
+      } catch (error) {
+        logger.error('Error sending test summary:', error);
+        res.status(500).json({ 
+          error: 'Failed to send test summary: ' + error.message 
+        });
+      }
+    });
+
     // Server-Sent Events endpoint for QR code updates
     this.app.get('/api/qr-events', (req, res) => {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -149,6 +214,60 @@ class WebServer {
     // Get available country codes
     this.app.get('/api/countries', (req, res) => {
       res.json(config.COUNTRY_CODES);
+    });
+
+    // Get available timezones
+    this.app.get('/api/timezones', (req, res) => {
+      // Common timezones list
+      const timezones = [
+        { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+        { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
+        { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
+        { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
+        { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
+        { value: 'America/Anchorage', label: 'Alaska Time' },
+        { value: 'Pacific/Honolulu', label: 'Hawaii Time' },
+        { value: 'America/Phoenix', label: 'Arizona Time' },
+        { value: 'America/Toronto', label: 'Eastern Time (Canada)' },
+        { value: 'America/Vancouver', label: 'Pacific Time (Canada)' },
+        { value: 'America/Mexico_City', label: 'Mexico City Time' },
+        { value: 'America/Sao_Paulo', label: 'Brasilia Time' },
+        { value: 'America/Buenos_Aires', label: 'Argentina Time' },
+        { value: 'America/Santiago', label: 'Chile Time' },
+        { value: 'America/Lima', label: 'Peru Time' },
+        { value: 'America/Bogota', label: 'Colombia Time' },
+        { value: 'Europe/London', label: 'London Time (GMT)' },
+        { value: 'Europe/Paris', label: 'Central European Time' },
+        { value: 'Europe/Berlin', label: 'Central European Time (Germany)' },
+        { value: 'Europe/Madrid', label: 'Central European Time (Spain)' },
+        { value: 'Europe/Rome', label: 'Central European Time (Italy)' },
+        { value: 'Europe/Amsterdam', label: 'Central European Time (Netherlands)' },
+        { value: 'Europe/Brussels', label: 'Central European Time (Belgium)' },
+        { value: 'Europe/Vienna', label: 'Central European Time (Austria)' },
+        { value: 'Europe/Warsaw', label: 'Central European Time (Poland)' },
+        { value: 'Europe/Prague', label: 'Central European Time (Czech Republic)' },
+        { value: 'Europe/Athens', label: 'Eastern European Time (Greece)' },
+        { value: 'Europe/Helsinki', label: 'Eastern European Time (Finland)' },
+        { value: 'Europe/Moscow', label: 'Moscow Time' },
+        { value: 'Europe/Istanbul', label: 'Turkey Time' },
+        { value: 'Asia/Dubai', label: 'Gulf Standard Time' },
+        { value: 'Asia/Kolkata', label: 'India Standard Time' },
+        { value: 'Asia/Shanghai', label: 'China Standard Time' },
+        { value: 'Asia/Hong_Kong', label: 'Hong Kong Time' },
+        { value: 'Asia/Tokyo', label: 'Japan Standard Time' },
+        { value: 'Asia/Seoul', label: 'Korea Standard Time' },
+        { value: 'Asia/Singapore', label: 'Singapore Time' },
+        { value: 'Asia/Bangkok', label: 'Indochina Time' },
+        { value: 'Australia/Sydney', label: 'Australian Eastern Time' },
+        { value: 'Australia/Melbourne', label: 'Australian Eastern Time (Victoria)' },
+        { value: 'Australia/Brisbane', label: 'Australian Eastern Standard Time' },
+        { value: 'Australia/Perth', label: 'Australian Western Time' },
+        { value: 'Pacific/Auckland', label: 'New Zealand Time' },
+        { value: 'Africa/Johannesburg', label: 'South Africa Time' },
+        { value: 'Africa/Cairo', label: 'Egypt Time' },
+        { value: 'Africa/Lagos', label: 'West Africa Time' }
+      ];
+      res.json(timezones);
     });
 
     // Send test message to WhatsApp group or contact
