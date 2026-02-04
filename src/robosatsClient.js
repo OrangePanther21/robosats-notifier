@@ -72,6 +72,12 @@ if (config.ROBOSATS_USE_MOCK) {
     
     // Ensure we always return an array
     if (!Array.isArray(response.data)) {
+      // Log the actual response for debugging
+      const dataPreview = typeof response.data === 'object' 
+        ? JSON.stringify(response.data).substring(0, 200)
+        : String(response.data).substring(0, 200);
+      logger.warn(`${coordinator}: Invalid response format. Got: ${dataPreview}`);
+      
       const error = new Error('Invalid response format');
       error.code = 'INVALID_RESPONSE';
       throw error;

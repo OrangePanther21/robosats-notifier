@@ -61,12 +61,13 @@ class DailySummaryScheduler {
     try {
       const date = new Date();
       const tzString = date.toLocaleString('en-US', { timeZone: timezone, timeZoneName: 'longOffset' });
-      const match = tzString.match(/GMT([+-]\d{1,2}):?(\d{2})?/);
+      const match = tzString.match(/GMT([+-])(\d{1,2}):?(\d{2})?/);
       
       if (match) {
-        const hours = match[1].padStart(3, '0'); // Ensure sign and 2 digits
-        const minutes = match[2] || '00';
-        return `${hours.charAt(0)}${hours.slice(1).padStart(2, '0')}:${minutes}`;
+        const sign = match[1];
+        const hours = match[2].padStart(2, '0');
+        const minutes = match[3] || '00';
+        return `${sign}${hours}:${minutes}`;
       }
       
       return '+00:00'; // Default to UTC

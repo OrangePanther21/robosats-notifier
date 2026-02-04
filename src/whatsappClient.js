@@ -199,7 +199,8 @@ class WhatsAppClient extends EventEmitter {
         
         // Verify deletion was successful
         // Wait for the deletion to propagate through WhatsApp
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const deletionVerifyDelay = parseInt(process.env.DELETION_VERIFY_DELAY) || 1500;
+        await new Promise(resolve => setTimeout(resolve, deletionVerifyDelay));
         
         // Try to fetch the message again to verify deletion
         const verifyMessage = await this.client.getMessageById(messageId);

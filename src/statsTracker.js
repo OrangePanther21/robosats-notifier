@@ -56,26 +56,26 @@ class StatsTracker {
    * Rotate buckets - remove oldest, add new current bucket
    */
   rotateBuckets() {
-    const currentHour = this.getCurrentBucketIndex();
     const lastBucket = this.stats.hourlyBuckets[this.stats.hourlyBuckets.length - 1];
     
     // Check if we need to rotate (more than 1 hour since last bucket)
     const hoursSinceLastBucket = Math.floor((Date.now() - lastBucket.timestamp) / (60 * 60 * 1000));
     
     if (hoursSinceLastBucket >= 1) {
-      // Remove oldest bucket(s)
-      this.stats.hourlyBuckets.shift();
-      
-      // Add new bucket
-      this.stats.hourlyBuckets.push({
-        timestamp: Date.now(),
-        coordinatorStats: {},
-        offerStats: {
-          byCurrency: {}
-        },
-        coordinatorVolume: {},
-        seenOfferIds: new Set()
-      });
+      // Remove as many buckets as hours have passed
+      for (let i = 0; i < hoursSinceLastBucket && this.stats.hourlyBuckets.length > 0; i++) {
+        this.stats.hourlyBuckets.shift();
+        
+        this.stats.hourlyBuckets.push({
+          timestamp: Date.now() - ((hoursSinceLastBucket - i - 1) * 60 * 60 * 1000),
+          coordinatorStats: {},
+          offerStats: {
+            byCurrency: {}
+          },
+          coordinatorVolume: {},
+          seenOfferIds: new Set()
+        });
+      }
     }
   }
   
@@ -106,12 +106,22 @@ class StatsTracker {
    * @param {string} coordinator - Coordinator ID (e.g., 'bazaar', 'temple')
    */
   recordOffer(offer, currencyCode, coordinator) {
+    this.rotateBuckets();
+    
     const currentBucket = this.stats.hourlyBuckets[this.stats.hourlyBuckets.length - 1];
     
-    // Deduplication: Skip if offer ID already seen in this bucket
-    if (!offer.id || currentBucket.seenOfferIds.has(offer.id)) {
+    // Deduplication: Skip if offer ID already seen in ANY bucket (not just current)
+    // This prevents counting the same offer multiple times across hour boundaries
+    if (!offer.id) {
       return;
     }
+    
+    for (const bucket of this.stats.hourlyBuckets) {
+      if (bucket.seenOfferIds.has(offer.id)) {
+        return; // Already counted in a previous bucket
+      }
+    }
+    
     currentBucket.seenOfferIds.add(offer.id);
     
     // Initialize currency stats if not exists
@@ -150,10 +160,12 @@ class StatsTracker {
     // Record premium if available
     if (offer.premium !== undefined && offer.premium !== null) {
       const premium = parseFloat(offer.premium);
-      if (offer.type === 0) {
-        currencyStats.premiums.buy.push(premium);
-      } else {
-        currencyStats.premiums.sell.push(premium);
+      if (!isNaN(premium)) {
+        if (offer.type === 0) {
+          currencyStats.premiums.buy.push(premium);
+        } else {
+          currencyStats.premiums.sell.push(premium);
+        }
       }
     }
     
@@ -383,6 +395,7 @@ class StatsTracker {
             offerStats: {
               byCurrency: {}
             },
+            coordinatorVolume: {},
             seenOfferIds: new Set()
           });
         }

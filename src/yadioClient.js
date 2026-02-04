@@ -129,7 +129,28 @@ class YadioClient {
       return [];
     }
     
-    // Fetch prices in parallel
+    // Use sequential fetching with delay for many currencies to avoid rate limiting
+    if (currencies.length > 5) {
+      logger.debug(`Fetching ${currencies.length} currencies sequentially to avoid rate limiting`);
+      const results = [];
+      for (const currency of currencies) {
+        const result = includeMovement 
+          ? await this.getPriceWithMovement(currency)
+          : await this.getBtcPrice(currency).then(price => ({
+              price,
+              currency,
+              change24h: null,
+              change30d: null,
+              change365d: null
+            }));
+        results.push(result);
+        // Add small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      return results;
+    }
+    
+    // Fetch prices in parallel for small number of currencies
     const promises = currencies.map(currency => {
       if (includeMovement) {
         return this.getPriceWithMovement(currency);
