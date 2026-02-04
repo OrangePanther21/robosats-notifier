@@ -5,6 +5,33 @@ All notable changes to RoboSats Notifier will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-02-04
+
+### Added
+- **Daily Summary Feature**: Receive scheduled daily reports with comprehensive statistics
+  - Configurable summary time and timezone via web UI
+  - BTC price tracking with support for multiple currencies
+  - 24-hour price movement display
+  - Offer statistics (count, volume, premium ranges) per currency
+  - Coordinator health and volume statistics
+  - Customizable closing messages with rotating phrases
+  - Flexible section selection (choose which stats to include)
+- New `/api/stats/reset` endpoint for clearing statistics data
+- Enhanced stats tracking with hourly bucket rotation for 24h rolling windows
+- Yadio API integration for real-time BTC price data
+
+### Changed
+- Upgraded `whatsapp-web.js` from v1.34.5-alpha.3 to v1.34.6
+- Removed `patch-package` dependency (patches no longer needed with latest whatsapp-web.js)
+- Improved timezone handling with proper GMT offset parsing
+- Enhanced error logging in RobosatsClient for invalid response formats
+- YadioClient now fetches prices sequentially for multiple currencies to avoid rate limiting
+- StatsTracker rotates hourly buckets based on elapsed time and prevents duplicate offer counting
+
+### Fixed
+- Timezone offset calculation now correctly parses GMT offsets (e.g., GMT+5, GMT-3)
+- Improved message deletion verification with better error handling
+
 ## [1.2.1] - 2026-01-23
 
 ### Fixed

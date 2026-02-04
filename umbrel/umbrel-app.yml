@@ -2,7 +2,7 @@ manifestVersion: 1
 id: robosats-notifier
 category: finance
 name: RoboSats Notifier
-version: "1.2.1"
+version: "1.3.0"
 tagline: Get instant notifications for new RoboSats offers
 description: >-
   **Unofficial community tool** - Monitor RoboSats order book and receive instant notifications when new offers match your criteria.
@@ -12,6 +12,7 @@ description: >-
   Features:
   - Real-time monitoring of RoboSats offers across multiple coordinators
   - Instant notifications for new matching offers (WhatsApp supported)
+  - Daily summary reports with BTC prices and offer statistics
   - Web UI for easy configuration
   - QR code authentication
   - Filter by currencies and coordinators
@@ -45,8 +46,18 @@ permissions:
 submitter: Community Contributor
 submission: https://github.com/getumbrel/umbrel-apps
 releaseNotes: >-
-  Version 1.2.1 - Bug Fix Release
+  Version 1.3.0 - Daily Summary Feature
   
-  Bug Fixes:
-  - Fixed bug where expired offers were not having their WhatsApp messages deleted
-  - Removed redundant cleanup logic that was interfering with proper message deletion
+  New Features:
+  - Daily Summary: Receive scheduled daily reports with BTC prices, offer statistics, and coordinator health
+  - Configurable summary time and timezone via web UI
+  - Support for multiple BTC price currencies with 24h price movement
+  - Volume statistics per coordinator
+  - Customizable closing messages
+  - Reset statistics endpoint for data management
+  
+  Improvements:
+  - Upgraded whatsapp-web.js to v1.34.6
+  - Improved timezone handling and error logging
+  - Better rate limiting for external API calls
+  - Enhanced stats tracking with hourly bucket rotation

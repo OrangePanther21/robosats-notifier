@@ -13,7 +13,7 @@ services:
       APP_PORT: 12597
   
   web:
-    image: orangepanther21/robosats-notifier:1.2.1
+    image: orangepanther21/robosats-notifier:1.3.0
     restart: unless-stopped
     volumes:
       - ${APP_DATA_DIR}/data:/data
