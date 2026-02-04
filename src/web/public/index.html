@@ -789,7 +789,7 @@
                 
                 for (const curr of priceCurrencies) {
                     const priceData = samplePrices[curr] || { price: '100,000', movement: sections.priceMovement ? ' (+2.0% 24h)' : '' };
-                    message += `${curr}: $${priceData.price}${priceData.movement}\n`;
+                    message += `*${curr}:* $${priceData.price}${priceData.movement}\n`;
                 }
                 message += '\n';
             }
@@ -816,15 +816,15 @@
                     message += `📈 *${language === 'ES' ? 'Ofertas' : 'Offers'} ${curr} (24h)*\n`;
                     
                     if (sections.offerCount) {
-                        message += `${strings.total}: ${total} (${data.buy} ${strings.buy} | ${data.sell} ${strings.sell})\n`;
+                        message += `*${strings.total}:* ${total} (${data.buy} ${strings.buy} | ${data.sell} ${strings.sell})\n`;
                         // Add volume (sample data)
                         const volumeSamples = { USD: '38.6M', PYG: '1.3M', EUR: '25.4M', ARS: '2.8M' };
                         const volume = volumeSamples[curr] || '10.0M';
-                        message += `${strings.volume}: ${volume} sats\n`;
+                        message += `*${strings.volume}:* ${volume} sats\n`;
                     }
                     
                     if (sections.premiumAnalysis) {
-                        message += `${strings.avgPremium}: ${data.buyPremium} (${strings.buy}) / ${data.sellPremium} (${strings.sell})\n`;
+                        message += `*${strings.avgPremium}:* ${data.buyPremium} (${strings.buy}) / ${data.sellPremium} (${strings.sell})\n`;
                     }
                     message += '\n';
                 }
@@ -854,8 +854,8 @@
                             volumeParts.push(`${curr}: ${coord.volumes[curr]}`);
                         }
                     }
-                    const volumeStr = volumeParts.length > 0 ? ` (${volumeParts.join(' | ')})` : '';
-                    message += `${index + 1}. ${coord.name} — ${coord.health} ${coord.indicator}${volumeStr}\n`;
+                    const volumeStr = volumeParts.length > 0 ? ` (${volumeParts.join(' | ')} 💧)` : '';
+                    message += `*${index + 1}. ${coord.name}:* ${coord.health} ${coord.indicator}${volumeStr}\n`;
                 });
                 message += '\n';
             }
