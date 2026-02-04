@@ -246,6 +246,12 @@
                                 <input type="checkbox" id="section-btc-price" checked>
                                 <span>BTC Price</span>
                             </label>
+                            <div style="margin-left: 24px;">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="section-price-movement" checked>
+                                    <span>24h Change</span>
+                                </label>
+                            </div>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="section-offer-stats" checked>
                                 <span>Offer Statistics</span>
@@ -309,9 +315,17 @@
                         <!-- Test Summary Button -->
                         <div class="form-group" style="margin-top: 20px;">
                             <button type="button" id="test-summary-btn" class="btn btn-test" style="width: 100%;">
-                                📨 Send Test Summary
+                                Send Test Summary
                             </button>
                             <small style="margin-top: 8px;">Send the daily summary now to test how it looks in WhatsApp</small>
+                        </div>
+                        
+                        <!-- Clear Statistics Button -->
+                        <div class="form-group" style="margin-top: 10px;">
+                            <button type="button" id="clear-stats-btn" class="btn btn-danger" style="width: 100%;">
+                                Clear Statistics
+                            </button>
+                            <small style="margin-top: 8px;">Delete all collected statistics (24h data)</small>
                         </div>
                     </div>
                 </div>
@@ -711,6 +725,7 @@
             // Get sections
             const sections = {
                 btcPrice: document.getElementById('section-btc-price')?.checked,
+                priceMovement: document.getElementById('section-price-movement')?.checked,
                 offerStats: document.getElementById('section-offer-stats')?.checked,
                 offerCount: document.getElementById('section-offer-count')?.checked,
                 premiumAnalysis: document.getElementById('section-premium')?.checked,
@@ -749,6 +764,7 @@
                 buy: 'COMPRA',
                 sell: 'VENTA',
                 avgPremium: 'Prima Promedio',
+                volume: 'Volumen',
                 coordinatorHealth: 'Estado de Coordinadores'
             } : {
                 dailySummary: 'Daily Summary',
@@ -758,6 +774,7 @@
                 buy: 'BUY',
                 sell: 'SELL',
                 avgPremium: 'Avg Premium',
+                volume: 'Volume',
                 coordinatorHealth: 'Coordinator Health'
             };
             
@@ -772,10 +789,27 @@
             let message = `📊 *${strings.dailySummary} - ${dateStr}*\n`;
             message += `━━━━━━━━━━━━━━━━━\n\n`;
             
-            // BTC Price section (sample data)
+            // BTC Price section (sample data) - multi-currency
             if (sections.btcPrice) {
-                message += `💰 *${strings.btcPrice} (${currency})*\n`;
-                message += `$98,450 (+2.3% 24h)\n\n`;
+                message += `💰 *${strings.btcPrice}*\n`;
+                
+                // Get all selected target currencies
+                const selectedCurrencies = currenciesMultiSelect?.getSelected();
+                const priceCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : [currency];
+                
+                // Sample prices for different currencies
+                const samplePrices = {
+                    USD: { price: '98,450', movement: sections.priceMovement ? ' (+2.3% 24h)' : '' },
+                    PYG: { price: '498,762,196', movement: sections.priceMovement ? ' (+2.5% 24h)' : '' },
+                    EUR: { price: '87,230', movement: sections.priceMovement ? ' (+2.1% 24h)' : '' },
+                    ARS: { price: '82,450,000', movement: sections.priceMovement ? ' (+2.8% 24h)' : '' }
+                };
+                
+                for (const curr of priceCurrencies) {
+                    const priceData = samplePrices[curr] || { price: '100,000', movement: sections.priceMovement ? ' (+2.0% 24h)' : '' };
+                    message += `${curr}: $${priceData.price}${priceData.movement}\n`;
+                }
+                message += '\n';
             }
             
             // Offer Statistics section (sample data) - per currency
@@ -801,6 +835,10 @@
                     
                     if (sections.offerCount) {
                         message += `${strings.total}: ${total} (${data.buy} ${strings.buy} | ${data.sell} ${strings.sell})\n`;
+                        // Add volume (sample data)
+                        const volumeSamples = { USD: '38.6M', PYG: '1.3M', EUR: '25.4M', ARS: '2.8M' };
+                        const volume = volumeSamples[curr] || '10.0M';
+                        message += `${strings.volume}: ${volume} sats\n`;
                     }
                     
                     if (sections.premiumAnalysis) {
@@ -810,14 +848,34 @@
                 }
             }
             
-            // Coordinator Health section (sample data)
+            // Coordinator Health section (sample data) - with per-currency volume
             if (sections.coordinatorHealth) {
                 message += `🌐 *${strings.coordinatorHealth}*\n`;
-                message += `1. LibreBazaar — 100% ✅ (1.2M sats)\n`;
-                message += `2. Temple of Sats — 98% ✅ (800K sats)\n`;
-                message += `3. Over the moon — 95% ✅ (650K sats)\n`;
-                message += `4. FreedomSats — 87% ⚠️ (200K sats)\n`;
-                message += `5. BitcoinVeneto — 62% ⚠️ (50K sats)\n\n`;
+                
+                // Get all selected target currencies for volume display
+                const selectedCurrencies = currenciesMultiSelect?.getSelected();
+                const volumeCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : [currency];
+                
+                // Sample data for coordinators with per-currency volumes
+                const coordinators = [
+                    { name: 'LibreBazaar', health: '100%', indicator: '✅', volumes: { USD: '20M', PYG: '800K', EUR: '15M', ARS: '2M' } },
+                    { name: 'Temple of Sats', health: '98%', indicator: '✅', volumes: { USD: '15M', PYG: '500K', EUR: '10M', ARS: '1.5M' } },
+                    { name: 'Over the moon', health: '95%', indicator: '✅', volumes: { USD: '12M', PYG: '400K', EUR: '8M', ARS: '1M' } },
+                    { name: 'FreedomSats', health: '87%', indicator: '⚠️', volumes: { USD: '5M', PYG: '200K', EUR: '3M', ARS: '500K' } },
+                    { name: 'BitcoinVeneto', health: '62%', indicator: '⚠️', volumes: { USD: '2M', PYG: '50K', EUR: '1M', ARS: '100K' } }
+                ];
+                
+                coordinators.forEach((coord, index) => {
+                    const volumeParts = [];
+                    for (const curr of volumeCurrencies) {
+                        if (coord.volumes[curr]) {
+                            volumeParts.push(`${curr}: ${coord.volumes[curr]}`);
+                        }
+                    }
+                    const volumeStr = volumeParts.length > 0 ? ` (${volumeParts.join(' | ')})` : '';
+                    message += `${index + 1}. ${coord.name} — ${coord.health} ${coord.indicator}${volumeStr}\n`;
+                });
+                message += '\n';
             }
             
             // Closing message
@@ -1184,6 +1242,7 @@
             // Also track section checkboxes as a combined value
             const sections = {
                 btcPrice: document.getElementById('section-btc-price')?.checked || false,
+                priceMovement: document.getElementById('section-price-movement')?.checked || false,
                 offerStats: document.getElementById('section-offer-stats')?.checked || false,
                 offerCount: document.getElementById('section-offer-count')?.checked || false,
                 premiumAnalysis: document.getElementById('section-premium')?.checked || false,
@@ -1378,6 +1437,7 @@
                         const sections = typeof settings.DAILY_SUMMARY_SECTIONS === 'string' ? 
                             JSON.parse(settings.DAILY_SUMMARY_SECTIONS) : settings.DAILY_SUMMARY_SECTIONS;
                         document.getElementById('section-btc-price').checked = sections.btcPrice !== false;
+                        document.getElementById('section-price-movement').checked = sections.priceMovement !== false;
                         document.getElementById('section-offer-stats').checked = sections.offerStats !== false;
                         document.getElementById('section-offer-count').checked = sections.offerCount !== false;
                         document.getElementById('section-premium').checked = sections.premiumAnalysis !== false;
@@ -1500,7 +1560,7 @@
                 validateRandomMessagesJson();
                 
                 // Section checkboxes change listeners
-                ['section-btc-price', 'section-offer-stats', 'section-offer-count', 'section-premium', 'section-coordinator-health'].forEach(id => {
+                ['section-btc-price', 'section-price-movement', 'section-offer-stats', 'section-offer-count', 'section-premium', 'section-coordinator-health'].forEach(id => {
                     const checkbox = document.getElementById(id);
                     if (checkbox) {
                         checkbox.addEventListener('change', () => {
@@ -1549,6 +1609,34 @@
                 
                 offerCountChild?.addEventListener('change', updateParentFromChildren);
                 premiumChild?.addEventListener('change', updateParentFromChildren);
+                
+                // Parent-child checkbox logic for BTC Price and Price Movement
+                const btcPriceParent = document.getElementById('section-btc-price');
+                const priceMovementChild = document.getElementById('section-price-movement');
+                
+                // When parent is changed
+                btcPriceParent?.addEventListener('change', () => {
+                    if (btcPriceParent.checked) {
+                        // When parent is checked, check child
+                        priceMovementChild.checked = true;
+                    } else {
+                        // When parent is unchecked, uncheck child
+                        priceMovementChild.checked = false;
+                    }
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
+                
+                // When child checkbox changes
+                priceMovementChild?.addEventListener('change', () => {
+                    // If child is checked, parent should be checked
+                    if (priceMovementChild.checked && !btcPriceParent?.checked) {
+                        btcPriceParent.checked = true;
+                    }
+                    // If child is unchecked, we can leave parent checked (optional behavior)
+                    updateSaveButtonState();
+                    updateMessagePreview();
+                });
                 
                 // Time and textarea change listeners
                 document.getElementById('daily-summary-time')?.addEventListener('change', updateSaveButtonState);
@@ -1934,6 +2022,7 @@
             // Handle daily summary sections as JSON
             const dailySummarySections = {
                 btcPrice: document.getElementById('section-btc-price')?.checked || false,
+                priceMovement: document.getElementById('section-price-movement')?.checked || false,
                 offerStats: document.getElementById('section-offer-stats')?.checked || false,
                 offerCount: document.getElementById('section-offer-count')?.checked || false,
                 premiumAnalysis: document.getElementById('section-premium')?.checked || false,
@@ -2339,7 +2428,7 @@
             const btn = document.getElementById('test-summary-btn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '📨 Sending...';
+            btn.innerHTML = 'Sending...';
             
             try {
                 const response = await fetch('/api/test-summary', {
@@ -2356,6 +2445,38 @@
             } catch (error) {
                 console.error('Error sending test summary:', error);
                 showMessage('Error sending test summary', 'error', 10000);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+        
+        // Clear statistics button
+        document.getElementById('clear-stats-btn').addEventListener('click', async () => {
+            if (!confirm('Are you sure? This will delete all collected statistics (last 24 hours of data).')) {
+                return;
+            }
+            
+            const btn = document.getElementById('clear-stats-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Clearing...';
+            
+            try {
+                const response = await fetch('/api/reset-stats', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(result.message || 'Statistics cleared successfully!', 'success', 5000);
+                } else {
+                    showMessage(result.error || 'Failed to clear statistics', 'error', 10000);
+                }
+            } catch (error) {
+                console.error('Error clearing statistics:', error);
+                showMessage('Error clearing statistics', 'error', 10000);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;

@@ -125,17 +125,19 @@ class WebServer {
         // Get 24h stats
         const stats = statsTracker.get24hStats();
         
-        // Get BTC price
-        const currency = config.DAILY_SUMMARY_CURRENCY || 'USD';
-        let priceData = null;
+        // Get BTC prices for all target currencies
+        const targetCurrencies = config.TARGET_CURRENCIES.map(c => c.code);
+        const includePriceMovement = config.DAILY_SUMMARY_SECTIONS?.priceMovement !== false;
+        
+        let priceDataArray = [];
         try {
-          priceData = await yadioClient.getPriceData(currency);
+          priceDataArray = await yadioClient.getPriceDataMultiple(targetCurrencies, includePriceMovement);
         } catch (priceError) {
-          logger.warn('Failed to fetch BTC price for test summary:', priceError.message);
+          logger.warn('Failed to fetch BTC prices for test summary:', priceError.message);
         }
         
         // Format message
-        const message = formatDailySummary(stats, priceData);
+        const message = formatDailySummary(stats, priceDataArray);
         
         // Send message
         const sentMessage = await this.whatsappClient.sendNotification(message);
@@ -169,6 +171,24 @@ class WebServer {
         logger.error('Error sending test summary:', error);
         res.status(500).json({ 
           error: 'Failed to send test summary: ' + error.message 
+        });
+      }
+    });
+    
+    // Reset statistics
+    this.app.post('/api/reset-stats', async (req, res) => {
+      try {
+        logger.info('Resetting statistics via web UI...');
+        await statsTracker.reset();
+        res.json({ 
+          success: true, 
+          message: 'Statistics cleared successfully!' 
+        });
+        logger.info('Statistics reset successfully via web UI');
+      } catch (error) {
+        logger.error('Error resetting statistics:', error);
+        res.status(500).json({ 
+          error: 'Failed to reset statistics: ' + error.message 
         });
       }
     });

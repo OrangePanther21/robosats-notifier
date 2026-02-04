@@ -18,6 +18,7 @@ class StatsTracker {
         offerStats: {
           byCurrency: {}  // Per-currency stats
         },
+        coordinatorVolume: {},  // Track volume per coordinator per currency
         seenOfferIds: new Set()  // Track seen offer IDs for deduplication
       });
     }
@@ -72,6 +73,7 @@ class StatsTracker {
         offerStats: {
           byCurrency: {}
         },
+        coordinatorVolume: {},
         seenOfferIds: new Set()
       });
     }
@@ -101,8 +103,9 @@ class StatsTracker {
    * Record an offer seen
    * @param {object} offer - Offer object from RoboSats API
    * @param {string} currencyCode - Currency code (e.g., 'USD', 'PYG')
+   * @param {string} coordinator - Coordinator ID (e.g., 'bazaar', 'temple')
    */
-  recordOffer(offer, currencyCode) {
+  recordOffer(offer, currencyCode, coordinator) {
     const currentBucket = this.stats.hourlyBuckets[this.stats.hourlyBuckets.length - 1];
     
     // Deduplication: Skip if offer ID already seen in this bucket
@@ -153,6 +156,17 @@ class StatsTracker {
         currencyStats.premiums.sell.push(premium);
       }
     }
+    
+    // Track volume per coordinator per currency
+    if (coordinator && sats > 0) {
+      if (!currentBucket.coordinatorVolume[coordinator]) {
+        currentBucket.coordinatorVolume[coordinator] = {};
+      }
+      if (!currentBucket.coordinatorVolume[coordinator][currencyCode]) {
+        currentBucket.coordinatorVolume[coordinator][currencyCode] = 0;
+      }
+      currentBucket.coordinatorVolume[coordinator][currencyCode] += sats;
+    }
   }
   
   /**
@@ -162,7 +176,8 @@ class StatsTracker {
   get24hStats() {
     const stats = {
       coordinators: {},
-      offersByCurrency: {}
+      offersByCurrency: {},
+      coordinatorVolumeByCurrency: {}  // New: volume per coordinator per currency
     };
     
     // Aggregate across all buckets
@@ -204,6 +219,22 @@ class StatsTracker {
           if (currencyStats.premiums) {
             stats.offersByCurrency[currency].premiums.buy.push(...currencyStats.premiums.buy);
             stats.offersByCurrency[currency].premiums.sell.push(...currencyStats.premiums.sell);
+          }
+        }
+      }
+      
+      // Aggregate coordinator volume per currency
+      if (bucket.coordinatorVolume) {
+        for (const [coordinator, currencies] of Object.entries(bucket.coordinatorVolume)) {
+          if (!stats.coordinatorVolumeByCurrency[coordinator]) {
+            stats.coordinatorVolumeByCurrency[coordinator] = {};
+          }
+          
+          for (const [currency, volume] of Object.entries(currencies)) {
+            if (!stats.coordinatorVolumeByCurrency[coordinator][currency]) {
+              stats.coordinatorVolumeByCurrency[coordinator][currency] = 0;
+            }
+            stats.coordinatorVolumeByCurrency[coordinator][currency] += volume;
           }
         }
       }
@@ -329,6 +360,11 @@ class StatsTracker {
             if (bucket.offerStats && !bucket.offerStats.byCurrency) {
               bucket.offerStats = { byCurrency: {} };
             }
+            
+            // Add coordinatorVolume if missing (for backward compatibility)
+            if (!bucket.coordinatorVolume) {
+              bucket.coordinatorVolume = {};
+            }
           }
         }
         
@@ -355,6 +391,36 @@ class StatsTracker {
       logger.warn('Failed to load stats from file:', error.message);
       throw error;
     }
+  }
+  
+  /**
+   * Reset all statistics
+   */
+  async reset() {
+    logger.info('Resetting statistics...');
+    
+    // Clear existing data
+    this.stats = {
+      coordinatorStats: {},
+      hourlyBuckets: []
+    };
+    
+    // Re-initialize 24 empty buckets
+    for (let i = 0; i < 24; i++) {
+      this.stats.hourlyBuckets.push({
+        timestamp: Date.now() - ((23 - i) * 60 * 60 * 1000),
+        coordinatorStats: {},
+        offerStats: {
+          byCurrency: {}
+        },
+        coordinatorVolume: {},
+        seenOfferIds: new Set()
+      });
+    }
+    
+    // Persist the reset state
+    await this.persist();
+    logger.info('Statistics reset successfully');
   }
   
   /**

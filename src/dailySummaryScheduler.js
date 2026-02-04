@@ -86,12 +86,15 @@ class DailySummaryScheduler {
       // Get 24h stats
       const stats = statsTracker.get24hStats();
       
-      // Get BTC price
-      const currency = config.DAILY_SUMMARY_CURRENCY || 'USD';
-      const priceData = await yadioClient.getPriceData(currency);
+      // Get BTC prices for all target currencies
+      const targetCurrencies = config.TARGET_CURRENCIES.map(c => c.code);
+      const includePriceMovement = config.DAILY_SUMMARY_SECTIONS?.priceMovement !== false;
+      
+      logger.debug(`Fetching prices for currencies: ${targetCurrencies.join(', ')} (movement: ${includePriceMovement})`);
+      const priceDataArray = await yadioClient.getPriceDataMultiple(targetCurrencies, includePriceMovement);
       
       // Format message
-      const message = formatDailySummary(stats, priceData);
+      const message = formatDailySummary(stats, priceDataArray);
       
       // Send message
       const sentMessage = await this.whatsappClient.sendNotification(message);

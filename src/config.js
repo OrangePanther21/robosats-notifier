@@ -137,7 +137,6 @@ function parseCheckInterval() {
 // Coordinator name mapping (ID -> Display Name)
 const COORDINATOR_MAP = {
   'alice': 'Alice',
-  'whiteyesats': 'WhitEyeSats',
   'freedomsats': 'FreedomSats',
   'bazaar': 'LibreBazaar',
   'moon': 'Over the moon',
@@ -493,6 +492,7 @@ function parseDailySummarySections() {
   if (!sectionsStr) {
     return {
       btcPrice: true,
+      priceMovement: true,
       offerStats: true,
       offerCount: true,
       premiumAnalysis: true,
@@ -506,11 +506,16 @@ function parseDailySummarySections() {
     if (parsed.offerStats && parsed.offerCount === undefined) {
       parsed.offerCount = true;
     }
+    // Ensure priceMovement exists (default to true if not specified for backward compatibility)
+    if (parsed.btcPrice && parsed.priceMovement === undefined) {
+      parsed.priceMovement = true;
+    }
     return parsed;
   } catch (error) {
     console.warn('Failed to parse DAILY_SUMMARY_SECTIONS, using defaults');
     return {
       btcPrice: true,
+      priceMovement: true,
       offerStats: true,
       offerCount: true,
       premiumAnalysis: true,

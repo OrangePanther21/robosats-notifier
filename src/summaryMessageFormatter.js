@@ -11,6 +11,7 @@ const STRINGS = {
     buy: 'BUY',
     sell: 'SELL',
     avgPremium: 'Avg Premium',
+    volume: 'Volume',
     coordinatorHealth: 'Coordinator Health',
     offers: 'offers',
     priceUnavailable: 'Price unavailable',
@@ -24,6 +25,7 @@ const STRINGS = {
     buy: 'COMPRA',
     sell: 'VENTA',
     avgPremium: 'Prima Promedio',
+    volume: 'Volumen',
     coordinatorHealth: 'Estado de Coordinadores',
     offers: 'ofertas',
     priceUnavailable: 'Precio no disponible',
@@ -69,7 +71,7 @@ function formatSats(sats) {
 /**
  * Format the daily summary message
  * @param {object} stats - 24h stats from statsTracker
- * @param {object} priceData - BTC price data from yadioClient
+ * @param {Array<object>|object} priceData - BTC price data (array for multiple currencies or single object)
  * @returns {string} Formatted message
  */
 function formatDailySummary(stats, priceData) {
@@ -80,6 +82,9 @@ function formatDailySummary(stats, priceData) {
     premiumAnalysis: true,
     coordinatorHealth: true
   };
+  
+  // Normalize priceData to always be an array
+  const priceDataArray = Array.isArray(priceData) ? priceData : [priceData];
   
   // Get current date
   const now = new Date();
@@ -95,20 +100,31 @@ function formatDailySummary(stats, priceData) {
   message += `📊 *${strings.dailySummary} - ${dateStr}*\n`;
   message += `━━━━━━━━━━━━━━━━━\n`;
   
-  // BTC Price Section
-  if (sections.btcPrice && priceData && priceData.price) {
-    message += `💰 *${strings.btcPrice} (${priceData.currency})*\n`;
-    message += `$${formatNumber(priceData.price)}`;
+  // BTC Price Section - Multi-currency
+  if (sections.btcPrice) {
+    message += `💰 *${strings.btcPrice}*\n`;
     
-    if (priceData.change24h !== null && priceData.change24h !== undefined) {
-      const sign = priceData.change24h >= 0 ? '+' : '';
-      message += ` (${sign}${priceData.change24h.toFixed(1)}% 24h)`;
+    let hasPrices = false;
+    for (const data of priceDataArray) {
+      if (data && data.price) {
+        hasPrices = true;
+        message += `*${data.currency}:* $${formatNumber(data.price)}`;
+        
+        // Add 24h price movement if enabled and available
+        if (sections.priceMovement && data.change24h !== null && data.change24h !== undefined) {
+          const sign = data.change24h >= 0 ? '+' : '';
+          message += ` (${sign}${data.change24h.toFixed(1)}% 24h)`;
+        }
+        
+        message += '\n';
+      }
     }
     
-    message += `\n\n`;
-  } else if (sections.btcPrice) {
-    message += `💰 *${strings.btcPrice}*\n`;
-    message += `${strings.priceUnavailable}\n\n`;
+    if (!hasPrices) {
+      message += `${strings.priceUnavailable}\n`;
+    }
+    
+    message += '\n';
   }
   
   // Offer Statistics Section - Per Currency
@@ -131,9 +147,14 @@ function formatDailySummary(stats, priceData) {
       // Show offer count if enabled
       if (sections.offerCount !== false) {
         const totalOffers = currencyStats.buyCount + currencyStats.sellCount;
-        message += `${strings.total}: ${totalOffers} (`;
+        message += `*${strings.total}:* ${totalOffers} (`;
         message += `${currencyStats.buyCount} ${strings.buy} | `;
         message += `${currencyStats.sellCount} ${strings.sell})\n`;
+        
+        // Show volume
+        if (currencyStats.totalVolumeSats > 0) {
+          message += `*${strings.volume}:* ${formatSats(currencyStats.totalVolumeSats)}\n`;
+        }
       }
       
       // Show premium analysis if enabled
@@ -142,7 +163,7 @@ function formatDailySummary(stats, priceData) {
         const sellAvg = currencyStats.premiums.sell.avg;
         
         if (buyAvg !== null || sellAvg !== null) {
-          message += `${strings.avgPremium}: `;
+          message += `*${strings.avgPremium}:* `;
           
           if (buyAvg !== null) {
             const sign = buyAvg >= 0 ? '+' : '';
@@ -173,6 +194,9 @@ function formatDailySummary(stats, priceData) {
     // Get coordinator map for display names
     const coordinatorMap = config.COORDINATOR_MAP;
     
+    // Get target currencies
+    const targetCurrencies = config.TARGET_CURRENCIES.map(c => c.code);
+    
     // Display coordinators (limit to top 10)
     const topCoordinators = stats.coordinatorsSorted.slice(0, 10);
     
@@ -180,11 +204,22 @@ function formatDailySummary(stats, priceData) {
       const displayName = coordinatorMap[coord.id] || coord.id;
       const healthIndicator = getHealthIndicator(coord.healthPercent);
       
-      message += `${index + 1}. ${displayName} — ${Math.round(coord.healthPercent)}% ${healthIndicator}`;
+      message += `*${index + 1}. ${displayName}:* ${Math.round(coord.healthPercent)}% ${healthIndicator}`;
       
-      // Add volume if available
-      if (coord.volumeSats > 0) {
-        message += ` (${formatSats(coord.volumeSats)})`;
+      // Add volume per currency if available
+      if (stats.coordinatorVolumeByCurrency && stats.coordinatorVolumeByCurrency[coord.id]) {
+        const coordVolumes = stats.coordinatorVolumeByCurrency[coord.id];
+        const volumeParts = [];
+        
+        for (const currency of targetCurrencies) {
+          if (coordVolumes[currency] && coordVolumes[currency] > 0) {
+            volumeParts.push(`${currency}: ${formatSats(coordVolumes[currency])}`);
+          }
+        }
+        
+        if (volumeParts.length > 0) {
+          message += ` (${volumeParts.join(' | ')} 💧)`;
+        }
       }
       
       message += '\n';

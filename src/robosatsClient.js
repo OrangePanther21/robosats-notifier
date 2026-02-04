@@ -135,11 +135,11 @@ if (config.ROBOSATS_USE_MOCK) {
       // Mark this coordinator as successfully reached
       reachableCoordinators.add(coordinator);
       
-      // Record each offer in stats tracker with currency code
+      // Record each offer in stats tracker with currency code and coordinator
       offers.forEach(offer => {
         const currency = config.TARGET_CURRENCIES.find(c => c.id === offer.currency);
         if (currency) {
-          statsTracker.recordOffer(offer, currency.code);
+          statsTracker.recordOffer(offer, currency.code, coordinator);
         }
       });
       
