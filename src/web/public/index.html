@@ -226,21 +226,6 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="daily-summary-currency">Primary Currency (for BTC price)</label>
-                            <div class="multiselect" id="summary-currency-multiselect">
-                                <div class="multiselect-trigger">
-                                    <span class="multiselect-text">Select currency...</span>
-                                    <span class="multiselect-arrow"></span>
-                                </div>
-                                <div class="multiselect-dropdown">
-                                    <input type="text" class="multiselect-search" placeholder="Search...">
-                                    <div class="multiselect-options"></div>
-                                </div>
-                            </div>
-                            <input type="hidden" id="daily-summary-currency" name="DAILY_SUMMARY_CURRENCY">
-                        </div>
-
-                        <div class="form-group">
                             <label>Include in Summary</label>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="section-btc-price" checked>
@@ -732,9 +717,6 @@
                 coordinatorHealth: document.getElementById('section-coordinator-health')?.checked
             };
             
-            // Get currency
-            const currency = window.summaryCurrencyMultiSelect?.getSelected()[0] || 'USD';
-            
             // Get closing message
             const closingMode = document.querySelector('input[name="DAILY_SUMMARY_CLOSING_MODE"]:checked')?.value;
             let closingMessage = '';
@@ -795,7 +777,7 @@
                 
                 // Get all selected target currencies
                 const selectedCurrencies = currenciesMultiSelect?.getSelected();
-                const priceCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : [currency];
+                const priceCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : ['USD'];
                 
                 // Sample prices for different currencies
                 const samplePrices = {
@@ -816,7 +798,7 @@
             if (sections.offerStats) {
                 // Get all selected target currencies
                 const selectedCurrencies = currenciesMultiSelect?.getSelected();
-                const targetCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : [currency];
+                const targetCurrencies = (selectedCurrencies && selectedCurrencies.length > 0) ? selectedCurrencies : ['USD'];
                 
                 // Sample data for each currency
                 const sampleData = {
@@ -1209,7 +1191,6 @@
             'DAILY_SUMMARY_ENABLED',
             'DAILY_SUMMARY_TIME',
             'DAILY_SUMMARY_TIMEZONE',
-            'DAILY_SUMMARY_CURRENCY',
             'DAILY_SUMMARY_CLOSING_MODE',
             'DAILY_SUMMARY_CLOSING_MESSAGE',
             'DAILY_SUMMARY_RANDOM_MESSAGES'
@@ -1425,17 +1406,6 @@
                     updateMessagePreview();
                 };
                 document.getElementById('daily-summary-timezone').value = selectedTimezone;
-                
-                // Load summary currency multiselect (single-select from target currencies)
-                const selectedSummaryCurrency = settings.DAILY_SUMMARY_CURRENCY || 'USD';
-                window.summaryCurrencyMultiSelect = new MultiSelect('summary-currency-multiselect', currencies, [selectedSummaryCurrency], true);
-                window.summaryCurrencyMultiSelect.onChange = () => {
-                    const selected = window.summaryCurrencyMultiSelect.getSelected();
-                    document.getElementById('daily-summary-currency').value = selected.length > 0 ? selected[0] : 'USD';
-                    updateSaveButtonState();
-                    updateMessagePreview();
-                };
-                document.getElementById('daily-summary-currency').value = selectedSummaryCurrency;
                 
                 // Load daily summary sections checkboxes
                 if (settings.DAILY_SUMMARY_SECTIONS) {
