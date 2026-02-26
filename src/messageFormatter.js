@@ -171,7 +171,14 @@ function formatOffer(offer) {
   }
     
   // Generate link - use configurable onion URL with format: /order/[coordinator]/[id]
-  const link = `${config.ROBOSATS_ONION_URL}/order/${coordinatorId}/${offer.id}`;
+  const offerPath = `/order/${coordinatorId}/${offer.id}`;
+  const onionLink = `${config.ROBOSATS_ONION_URL}${offerPath}`;
+  
+  let linkLines = `🔐 ${onionLink}`;
+  if (config.ROBOSATS_CLEARNET_URL) {
+    const clearnetLink = `${config.ROBOSATS_CLEARNET_URL}${offerPath}`;
+    linkLines += `\n🌐 ${clearnetLink}`;
+  }
   
   return `
 *${type} ${strings.offer} (${coordinatorName}${healthIndicator})*
@@ -180,7 +187,7 @@ function formatOffer(offer) {
 💵 *${strings.price}:* ${price}${premium ? ` (${premium})` : ''}
 🏦 *${strings.payment}:* ${paymentMethod}
 ⏳ *${strings.expiresAt}:* ${expiresInfo}
-🔗 ${link}
+${linkLines}
 `.trim();
 }
 

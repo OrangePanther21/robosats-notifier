@@ -470,6 +470,7 @@ function getConfig() {
     ROBOSATS_API_URL: process.env.ROBOSATS_API_URL,
     ROBOSATS_COORDINATORS: process.env.ROBOSATS_COORDINATORS,
     ROBOSATS_ONION_URL: process.env.ROBOSATS_ONION_URL,
+    ROBOSATS_CLEARNET_URL: process.env.ROBOSATS_CLEARNET_URL || '',
     TARGET_CURRENCIES: process.env.TARGET_CURRENCIES,
     LANGUAGE: process.env.LANGUAGE,
     BOT_ENABLED: process.env.BOT_ENABLED,
@@ -558,6 +559,7 @@ function reloadConfig() {
   config.ROBOSATS_API_URL = process.env.ROBOSATS_API_URL;
   config.ROBOSATS_COORDINATORS = process.env.ROBOSATS_COORDINATORS;
   config.ROBOSATS_ONION_URL = process.env.ROBOSATS_ONION_URL;
+  config.ROBOSATS_CLEARNET_URL = process.env.ROBOSATS_CLEARNET_URL || '';
   config.TARGET_CURRENCIES = parseTargetCurrencies();
   config.LANGUAGE = parseLanguage();
   config.LOG_LEVEL = process.env.LOG_LEVEL || 'info';
@@ -590,6 +592,7 @@ module.exports = {
   ROBOSATS_API_URL: process.env.ROBOSATS_API_URL,
   ROBOSATS_COORDINATORS: process.env.ROBOSATS_COORDINATORS,
   ROBOSATS_ONION_URL: process.env.ROBOSATS_ONION_URL,
+  ROBOSATS_CLEARNET_URL: process.env.ROBOSATS_CLEARNET_URL || '',
   
   AVAILABLE_COORDINATORS,
   CURRENCY_MAP,

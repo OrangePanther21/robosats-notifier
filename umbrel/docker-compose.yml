@@ -30,6 +30,7 @@ services:
       ROBOSATS_API_URL: ${ROBOSATS_API_URL:-http://robosats_web_1:12596}
       ROBOSATS_COORDINATORS: ${ROBOSATS_COORDINATORS:-bazaar,moon,lake}
       ROBOSATS_ONION_URL: ${ROBOSATS_ONION_URL:-}
+      ROBOSATS_CLEARNET_URL: ${ROBOSATS_CLEARNET_URL:-}
       
       # Configuration file path
       CONFIG_FILE: /data/config.json

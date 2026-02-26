@@ -175,6 +175,12 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="robosats-clearnet">RoboSats Clearnet URL (Optional)</label>
+                    <input type="url" id="robosats-clearnet" name="ROBOSATS_CLEARNET_URL" placeholder="https://robosats.example.com">
+                    <small>If provided, a clearnet link will also be included in offer messages</small>
+                </div>
+
+                <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="delete-inactive" name="DELETE_INACTIVE_MESSAGES">
                         <span>Auto-delete messages for inactive offers</span>
@@ -1187,6 +1193,7 @@
             'LANGUAGE',
             'ROBOSATS_COORDINATORS',
             'ROBOSATS_ONION_URL',
+            'ROBOSATS_CLEARNET_URL',
             'DELETE_INACTIVE_MESSAGES',
             'DAILY_SUMMARY_ENABLED',
             'DAILY_SUMMARY_TIME',

@@ -37,6 +37,8 @@ port: 12597
 gallery:
   - https://raw.githubusercontent.com/OrangePanther21/robosats-notifier/main/docs/screenshots/screenshot-1.jpg
   - https://raw.githubusercontent.com/OrangePanther21/robosats-notifier/main/docs/screenshots/screenshot-2.jpg
+  - https://raw.githubusercontent.com/OrangePanther21/robosats-notifier/main/docs/screenshots/screenshot-3.jpg
+  - https://raw.githubusercontent.com/OrangePanther21/robosats-notifier/main/docs/screenshots/screenshot-4.jpg
 path: ""
 defaultUsername: ""
 defaultPassword: ""
