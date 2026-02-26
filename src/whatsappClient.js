@@ -227,8 +227,8 @@ class WhatsAppClient extends EventEmitter {
         logger.warn(`Message ${messageId} deletion verification failed - message still exists (type: ${msgType}, bodyLength: ${body.length})`);
         return false;
       }
-      logger.warn(`Message ${messageId} not found for deletion`);
-      return false;
+      logger.info(`Message ${messageId} already gone (not found) - treating as successfully deleted`);
+      return true;
     } catch (error) {
       logger.warn(`Failed to delete message ${messageId}: ${error.message}`);
       return false;
