@@ -2,7 +2,7 @@ manifestVersion: 1
 id: robosats-notifier
 category: finance
 name: RoboSats Notifier
-version: "1.3.0"
+version: "1.4.0"
 tagline: Get instant notifications for new RoboSats offers
 description: >-
   **Unofficial community tool** - Monitor RoboSats order book and receive instant notifications when new offers match your criteria.
@@ -48,18 +48,11 @@ permissions:
 submitter: Community Contributor
 submission: https://github.com/getumbrel/umbrel-apps
 releaseNotes: >-
-  Version 1.3.0 - Daily Summary Feature
+  Version 1.4.0 - Clearnet URL Support
   
   New Features:
-  - Daily Summary: Receive scheduled daily reports with BTC prices, offer statistics, and coordinator health
-  - Configurable summary time and timezone via web UI
-  - Support for multiple BTC price currencies with 24h price movement
-  - Volume statistics per coordinator
-  - Customizable closing messages
-  - Reset statistics endpoint for data management
+  - Clearnet URL: Configure an optional RoboSats clearnet URL so offer notifications include a direct clearnet link
+  - New ROBOSATS_CLEARNET_URL setting available in web UI and environment variables
   
-  Improvements:
-  - Upgraded whatsapp-web.js to v1.34.6
-  - Improved timezone handling and error logging
-  - Better rate limiting for external API calls
-  - Enhanced stats tracking with hourly bucket rotation
+  Bug Fixes:
+  - Improved message deletion logging — non-existent messages are now treated as successfully deleted

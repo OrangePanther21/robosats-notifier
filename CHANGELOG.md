@@ -5,6 +5,16 @@ All notable changes to RoboSats Notifier will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-26
+
+### Added
+- **Clearnet URL Support**: Configure an optional RoboSats clearnet URL for offer links in notifications
+  - New `ROBOSATS_CLEARNET_URL` configuration option in web UI and environment variables
+  - Offer messages now include a clearnet link when configured
+
+### Fixed
+- Improved deletion logging in WhatsAppClient — non-existent messages are now treated as successfully deleted, reducing misleading error noise
+
 ## [1.3.0] - 2026-02-04
 
 ### Added
